@@ -2,19 +2,12 @@
   "name": "Zeltyo",
   "short_name": "Zeltyo",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#050505",
-  "description": "Carte fidélité digitale et offres premium autour de vous.",
   "icons": [
     {
-      "src": "/logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/logo.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
