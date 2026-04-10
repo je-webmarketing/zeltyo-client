@@ -10,6 +10,9 @@ import { buildApiUrl } from "./config/api";
 const STORAGE_SELECTED_BUSINESS = "zeltyo_selected_business_id";
 const STORAGE_SELECTED_ZONE = "zeltyo_selected_zone";
 const STORAGE_LOCATION_MODE = "zeltyo_location_mode";
+const STORAGE_SELECTED_COUNTRY = "zeltyo_selected_country";
+const STORAGE_SELECTED_CITY = "zeltyo_selected_city";
+const STORAGE_SELECTED_SECTOR = "zeltyo_selected_sector";
 
 const COLORS = {
   bg: "#050505",
@@ -18,6 +21,8 @@ const COLORS = {
   border: "#2A2A2A",
   gold: "#D4AF37",
   goldLight: "#F2D06B",
+  copper: "#D97A32",
+  copperLight: "#F2A65A",
   red: "#C94B32",
   redLight: "#E06A4C",
   text: "#F7F4EA",
@@ -96,7 +101,8 @@ const BUSINESSES = [
       {
         id: "OFF-1",
         title: "Petit-déjeuner -10%",
-        description: "Profitez d’une remise matinale sur votre formule café + viennoiserie.",
+        description:
+          "Profitez d’une remise matinale sur votre formule café + viennoiserie.",
         type: "flash",
         discountLabel: "-10%",
         validToday: true,
@@ -105,7 +111,8 @@ const BUSINESSES = [
       {
         id: "OFF-2",
         title: "Boisson fidélité",
-        description: "À partir de 10 passages, une boisson offerte vous attend.",
+        description:
+          "À partir de 10 passages, une boisson offerte vous attend.",
         type: "reward",
         discountLabel: "Offert",
         validToday: true,
@@ -318,9 +325,23 @@ function getOfferUrgencyLabel(offer) {
 }
 
 export default function ClientApp() {
-  const [selectedZone, setSelectedZone] = useState(() => {
-    return localStorage.getItem(STORAGE_SELECTED_ZONE) || "geneve-centre";
-  });
+  const initialZoneId =
+    localStorage.getItem(STORAGE_SELECTED_ZONE) || "geneve-centre";
+  const initialZone =
+    ZONES.find((z) => z.id === initialZoneId) || ZONES[0] || null;
+
+  const [selectedZone, setSelectedZone] = useState(initialZone?.id || "");
+  const [selectedCountry, setSelectedCountry] = useState(
+    localStorage.getItem(STORAGE_SELECTED_COUNTRY) ||
+      initialZone?.country ||
+      "CH"
+  );
+  const [selectedCity, setSelectedCity] = useState(
+    localStorage.getItem(STORAGE_SELECTED_CITY) || initialZone?.city || ""
+  );
+  const [selectedSector, setSelectedSector] = useState(
+    localStorage.getItem(STORAGE_SELECTED_SECTOR) || initialZone?.id || ""
+  );
 
   const [selectedBusinessId, setSelectedBusinessId] = useState(() => {
     return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || "BUS-1";
@@ -337,6 +358,7 @@ export default function ClientApp() {
   const [optedIn, setOptedIn] = useState(false);
   const [subscriptionId, setSubscriptionId] = useState(null);
   const [offerFilter, setOfferFilter] = useState("all");
+  const [showAllOffers, setShowAllOffers] = useState(false);
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -355,6 +377,18 @@ export default function ClientApp() {
   useEffect(() => {
     localStorage.setItem(STORAGE_LOCATION_MODE, locationMode);
   }, [locationMode]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_SELECTED_COUNTRY, selectedCountry);
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_SELECTED_CITY, selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_SELECTED_SECTOR, selectedSector);
+  }, [selectedSector]);
 
   const requestUserLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
@@ -420,35 +454,41 @@ export default function ClientApp() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+  let isMounted = true;
 
-    async function bootOneSignal() {
-      try {
-        await initOneSignal();
-        const status = await getOneSignalStatus();
+  async function bootOneSignal() {
+    try {
+      await initOneSignal();
+      const status = await getOneSignalStatus();
 
-        if (!isMounted) return;
+      if (!isMounted) return;
 
-        setOneSignalReady(true);
-        setPermission(Boolean(status.permission));
-        setOptedIn(Boolean(status.optedIn));
-        setSubscriptionId(status.subscriptionId || null);
+      setOneSignalReady(true);
+      setPermission(Boolean(status.permission));
+      setOptedIn(Boolean(status.optedIn));
+      setSubscriptionId(status.subscriptionId || null);
 
-        console.log("Permission OneSignal :", status.permission);
-        console.log("OneSignal optedIn :", status.optedIn);
-        console.log("OneSignal subscriptionId :", status.subscriptionId);
-        console.log("OneSignal token :", status.token);
-      } catch (error) {
-        console.error("Erreur init OneSignal :", error);
-      }
+      console.log("Permission OneSignal :", status.permission);
+      console.log("OneSignal optedIn :", status.optedIn);
+      console.log("OneSignal subscriptionId :", status.subscriptionId);
+      console.log("OneSignal token :", status.token);
+    } catch (error) {
+      console.error("Erreur init OneSignal :", error);
+
+      if (!isMounted) return;
+      setOneSignalReady(false);
+      setPermission(false);
+      setOptedIn(false);
+      setSubscriptionId(null);
     }
+  }
 
-    bootOneSignal();
+  bootOneSignal();
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   useEffect(() => {
     if (locationMode === "auto") {
@@ -537,6 +577,32 @@ export default function ClientApp() {
     return ranked[0] || null;
   }, [nearbyOffers]);
 
+  const availableCountries = useMemo(() => {
+    return [...new Set(ZONES.map((z) => z.country))];
+  }, []);
+
+  const availableCities = useMemo(() => {
+    return [
+      ...new Set(
+        ZONES.filter((z) => z.country === selectedCountry).map((z) => z.city)
+      ),
+    ];
+  }, [selectedCountry]);
+
+  const availableSectors = useMemo(() => {
+    return ZONES.filter(
+      (z) => z.country === selectedCountry && z.city === selectedCity
+    );
+  }, [selectedCountry, selectedCity]);
+
+  const selectedZoneMeta = useMemo(() => {
+    return ZONES.find((z) => z.id === selectedZone) || ZONES[0] || null;
+  }, [selectedZone]);
+
+  const visibleBusinesses = useMemo(() => {
+    return BUSINESSES.filter((b) => b.zoneId === selectedZone);
+  }, [selectedZone]);
+
   const autoSelectedBusiness = useMemo(() => {
     if (locationMode !== "auto") return null;
     if (!geoState.coords) return null;
@@ -544,6 +610,61 @@ export default function ClientApp() {
     if (businessesWithDistance.length > 0) return businessesWithDistance[0];
     return null;
   }, [locationMode, geoState.coords, nearbyBusinesses, businessesWithDistance]);
+
+  useEffect(() => {
+    if (locationMode !== "manual") return;
+
+    if (!availableCountries.includes(selectedCountry)) {
+      const nextCountry = availableCountries[0] || "";
+      setSelectedCountry(nextCountry);
+    }
+  }, [locationMode, availableCountries, selectedCountry]);
+
+  useEffect(() => {
+    if (locationMode !== "manual") return;
+    if (!selectedCountry) return;
+
+    if (!availableCities.includes(selectedCity)) {
+      const nextCity = availableCities[0] || "";
+      setSelectedCity(nextCity);
+    }
+  }, [locationMode, selectedCountry, availableCities, selectedCity]);
+
+  useEffect(() => {
+    if (locationMode !== "manual") return;
+    if (!selectedCountry || !selectedCity) return;
+
+    const sectorExists = availableSectors.some((z) => z.id === selectedSector);
+    if (!sectorExists) {
+      const nextSector = availableSectors[0]?.id || "";
+      setSelectedSector(nextSector);
+    }
+  }, [
+    locationMode,
+    selectedCountry,
+    selectedCity,
+    availableSectors,
+    selectedSector,
+  ]);
+
+  useEffect(() => {
+    if (locationMode !== "manual") return;
+    if (!selectedSector) return;
+
+    if (selectedZone !== selectedSector) {
+      setSelectedZone(selectedSector);
+    }
+  }, [locationMode, selectedSector, selectedZone]);
+
+  useEffect(() => {
+    if (locationMode !== "manual") return;
+    if (!visibleBusinesses.length) return;
+
+    const exists = visibleBusinesses.some((b) => b.id === selectedBusinessId);
+    if (!exists) {
+      setSelectedBusinessId(visibleBusinesses[0].id);
+    }
+  }, [locationMode, visibleBusinesses, selectedBusinessId]);
 
   useEffect(() => {
     if (!autoSelectedBusiness || locationMode !== "auto") return;
@@ -555,24 +676,32 @@ export default function ClientApp() {
     if (autoSelectedBusiness.id !== selectedBusinessId) {
       setSelectedBusinessId(autoSelectedBusiness.id);
     }
-  }, [autoSelectedBusiness, locationMode, selectedZone, selectedBusinessId]);
 
-  const visibleBusinesses = useMemo(
-    () => BUSINESSES.filter((b) => b.zoneId === selectedZone),
-    [selectedZone]
-  );
+    const zoneMeta = ZONES.find((z) => z.id === autoSelectedBusiness.zoneId);
+    if (zoneMeta) {
+      if (zoneMeta.country !== selectedCountry) {
+        setSelectedCountry(zoneMeta.country);
+      }
+      if (zoneMeta.city !== selectedCity) {
+        setSelectedCity(zoneMeta.city);
+      }
+      if (zoneMeta.id !== selectedSector) {
+        setSelectedSector(zoneMeta.id);
+      }
+    }
+  }, [
+    autoSelectedBusiness,
+    locationMode,
+    selectedZone,
+    selectedBusinessId,
+    selectedCountry,
+    selectedCity,
+    selectedSector,
+  ]);
 
   useEffect(() => {
-    if (!visibleBusinesses.length) return;
-
-    const exists = visibleBusinesses.some((b) => b.id === selectedBusinessId);
-    if (!exists) {
-      setSelectedBusinessId(visibleBusinesses[0].id);
-    }
-  }, [selectedZone, visibleBusinesses, selectedBusinessId]);
-
-  const selectedZoneMeta =
-    ZONES.find((z) => z.id === selectedZone) || ZONES[0] || null;
+    setShowAllOffers(false);
+  }, [selectedBusinessId, selectedZone, offerFilter]);
 
   const selectedBusiness =
     BUSINESSES.find((b) => b.id === selectedBusinessId) ||
@@ -638,6 +767,15 @@ export default function ClientApp() {
       await initOneSignal();
       const status = await enableOneSignalNotifications();
 
+      const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+if (isLocalhost) {
+  alert("OneSignal n'est pas disponible en localhost avec votre configuration actuelle. Testez cette fonction sur Netlify.");
+  return;
+}
+
       console.log("Permission OneSignal :", status.permission);
       console.log("OneSignal optedIn :", status.optedIn);
       console.log("OneSignal subscriptionId :", status.subscriptionId);
@@ -681,6 +819,17 @@ export default function ClientApp() {
         )
       : null;
 
+  const visibleOfferCards = useMemo(() => {
+    const list = filteredOffers.filter((o) => o.id !== featuredOffer?.id);
+    return showAllOffers ? list : list.slice(0, 4);
+  }, [filteredOffers, featuredOffer, showAllOffers]);
+
+  const hiddenOffersCount = Math.max(
+    filteredOffers.filter((o) => o.id !== featuredOffer?.id).length -
+      visibleOfferCards.length,
+    0
+  );
+
   useEffect(() => {
     const existingStyle = document.getElementById("zeltyo-client-animations");
     if (existingStyle) return;
@@ -692,6 +841,9 @@ export default function ClientApp() {
         0% { box-shadow: 0 0 10px rgba(212,175,55,0.10); }
         50% { box-shadow: 0 0 35px rgba(212,175,55,0.25); }
         100% { box-shadow: 0 0 10px rgba(212,175,55,0.10); }
+      }
+      html {
+        scroll-behavior: smooth;
       }
     `;
     document.head.appendChild(style);
@@ -709,6 +861,50 @@ export default function ClientApp() {
       }}
     >
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div
+          style={{
+            position: "sticky",
+            top: 10,
+            zIndex: 20,
+            marginBottom: 14,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              padding: 10,
+              borderRadius: 18,
+              background: "rgba(11,11,11,0.86)",
+              backdropFilter: "blur(10px)",
+              border: `1px solid ${COLORS.border}`,
+              boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+            }}
+          >
+            <a href="#offres" style={{ textDecoration: "none" }}>
+              <button style={copperButtonSmall()}>Offres</button>
+            </a>
+            <a href="#carte" style={{ textDecoration: "none" }}>
+              <button style={ghostButtonSmall()}>Carte</button>
+            </a>
+            <a href="#commerce" style={{ textDecoration: "none" }}>
+              <button style={ghostButtonSmall()}>Commerce</button>
+            </a>
+            <a href="#avis" style={{ textDecoration: "none" }}>
+              <button style={ghostButtonSmall()}>Avis</button>
+            </a>
+            <button
+              onClick={() =>
+                alert("Mes cartes arrive bientôt ✅\nVous pourrez retrouver toutes vos cartes fidélité ici.")
+              }
+              style={ghostButtonSmall()}
+            >
+              💳 Mes cartes
+            </button>
+          </div>
+        </div>
+
         <div
           style={{
             background: "linear-gradient(180deg, #111111, #0B0B0B)",
@@ -768,7 +964,7 @@ export default function ClientApp() {
                   marginTop: 8,
                 }}
               >
-                Votre fidélité, en version premium
+                Votre espace fidélité premium
               </div>
             </div>
           </div>
@@ -792,22 +988,54 @@ export default function ClientApp() {
           <h1
             style={{
               margin: "0 0 8px 0",
-              fontSize: 24,
+              fontSize: 28,
               color: COLORS.text,
             }}
           >
-            {selectedBusiness.name}
+            Ma carte fidélité
           </h1>
 
           <p
             style={{
-              margin: 0,
+              margin: "0 0 10px 0",
               color: COLORS.textSoft,
               lineHeight: 1.6,
             }}
           >
-            {selectedBusiness.description}
+            Retrouvez vos avantages, vos points et les offres près de vous.
           </p>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                padding: "8px 12px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.04)",
+                border: `1px solid ${COLORS.border}`,
+                color: COLORS.text,
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              Commerce actif : {selectedBusiness.name}
+            </span>
+
+            <button
+              onClick={() =>
+                alert("Mes cartes arrive bientôt ✅\nVous pourrez retrouver toutes vos cartes fidélité ici.")
+              }
+              style={copperButton()}
+            >
+              💳 Voir mes cartes
+            </button>
+          </div>
         </div>
 
         <div
@@ -836,8 +1064,8 @@ export default function ClientApp() {
               <button
                 onClick={() => setLocationMode("auto")}
                 style={{
-                  ...goldButton(),
-                  opacity: locationMode === "auto" ? 1 : 0.7,
+                  ...(locationMode === "auto" ? copperButton() : ghostButton()),
+                  opacity: locationMode === "auto" ? 1 : 0.9,
                 }}
               >
                 Mode automatique
@@ -849,7 +1077,7 @@ export default function ClientApp() {
                   ...ghostButton(),
                   border:
                     locationMode === "manual"
-                      ? `1px solid ${COLORS.gold}`
+                      ? `1px solid ${COLORS.copper}`
                       : `1px solid ${COLORS.border}`,
                 }}
               >
@@ -935,11 +1163,11 @@ export default function ClientApp() {
                         borderRadius: 16,
                         background:
                           business.id === selectedBusiness.id
-                            ? "rgba(212,175,55,0.10)"
+                            ? "rgba(217,122,50,0.12)"
                             : COLORS.surfaceSoft,
                         border:
                           business.id === selectedBusiness.id
-                            ? `1px solid rgba(212,175,55,0.35)`
+                            ? `1px solid rgba(217,122,50,0.35)`
                             : `1px solid ${COLORS.border}`,
                       }}
                     >
@@ -963,7 +1191,7 @@ export default function ClientApp() {
 
                         <div
                           style={{
-                            color: COLORS.goldLight,
+                            color: COLORS.copperLight,
                             fontWeight: 800,
                             whiteSpace: "nowrap",
                           }}
@@ -981,10 +1209,19 @@ export default function ClientApp() {
                       >
                         <button
                           onClick={() => {
+                            const zoneMeta = ZONES.find(
+                              (z) => z.id === business.zoneId
+                            );
+                            setLocationMode("manual");
                             setSelectedZone(business.zoneId);
                             setSelectedBusinessId(business.id);
+                            if (zoneMeta) {
+                              setSelectedCountry(zoneMeta.country);
+                              setSelectedCity(zoneMeta.city);
+                              setSelectedSector(zoneMeta.id);
+                            }
                           }}
-                          style={goldButton()}
+                          style={copperButton()}
                         >
                           Choisir
                         </button>
@@ -1006,6 +1243,7 @@ export default function ClientApp() {
         </div>
 
         <div
+          id="offres"
           style={{
             background: COLORS.surface,
             border: `1px solid ${COLORS.border}`,
@@ -1015,16 +1253,30 @@ export default function ClientApp() {
             boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
           }}
         >
-          <h3
+          <div
             style={{
-              marginTop: 0,
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
               marginBottom: 8,
-              color: COLORS.goldLight,
-              fontSize: 22,
             }}
           >
-            Offres autour de moi
-          </h3>
+            <h3
+              style={{
+                margin: 0,
+                color: COLORS.goldLight,
+                fontSize: 22,
+              }}
+            >
+              Offres autour de moi
+            </h3>
+
+            <a href="#commerce" style={{ textDecoration: "none" }}>
+              <button style={ghostButtonSmall()}>Voir le commerce</button>
+            </a>
+          </div>
 
           {featuredOffer ? (
             <div
@@ -1187,7 +1439,7 @@ export default function ClientApp() {
                       color:
                         featuredOffer.type === "flash"
                           ? "#f5b09f"
-                          : COLORS.goldLight,
+                          : COLORS.copperLight,
                       fontWeight: 900,
                       fontSize: 18,
                       marginBottom: 16,
@@ -1203,10 +1455,19 @@ export default function ClientApp() {
                           (b) => b.id === featuredOffer.businessId
                         );
                         if (!business) return;
+                        const zoneMeta = ZONES.find(
+                          (z) => z.id === business.zoneId
+                        );
+                        setLocationMode("manual");
                         setSelectedZone(business.zoneId);
                         setSelectedBusinessId(business.id);
+                        if (zoneMeta) {
+                          setSelectedCountry(zoneMeta.country);
+                          setSelectedCity(zoneMeta.city);
+                          setSelectedSector(zoneMeta.id);
+                        }
                       }}
-                      style={goldButton()}
+                      style={copperButton()}
                     >
                       Voir le commerce
                     </button>
@@ -1234,7 +1495,8 @@ export default function ClientApp() {
               fontSize: 14,
             }}
           >
-            Découvrez les opportunités disponibles autour de vous, classées par proximité.
+            Découvrez les opportunités disponibles autour de vous, classées par
+            proximité.
           </p>
 
           <div
@@ -1243,7 +1505,7 @@ export default function ClientApp() {
             <button
               onClick={() => setOfferFilter("all")}
               style={{
-                ...(offerFilter === "all" ? goldButton() : ghostButton()),
+                ...(offerFilter === "all" ? copperButton() : ghostButton()),
                 padding: "10px 14px",
               }}
             >
@@ -1253,7 +1515,7 @@ export default function ClientApp() {
             <button
               onClick={() => setOfferFilter("flash")}
               style={{
-                ...(offerFilter === "flash" ? goldButton() : ghostButton()),
+                ...(offerFilter === "flash" ? copperButton() : ghostButton()),
                 padding: "10px 14px",
               }}
             >
@@ -1263,7 +1525,7 @@ export default function ClientApp() {
             <button
               onClick={() => setOfferFilter("reward")}
               style={{
-                ...(offerFilter === "reward" ? goldButton() : ghostButton()),
+                ...(offerFilter === "reward" ? copperButton() : ghostButton()),
                 padding: "10px 14px",
               }}
             >
@@ -1285,178 +1547,199 @@ export default function ClientApp() {
                 Aucune offre disponible pour le moment.
               </div>
             ) : (
-              filteredOffers
-                .filter((o) => o.id !== featuredOffer?.id)
-                .slice(0, 4)
-                .map((offer) => (
+              visibleOfferCards.map((offer) => (
+                <div
+                  key={offer.id}
+                  style={{
+                    padding: 16,
+                    borderRadius: 18,
+                    background: offer.isNearby
+                      ? "rgba(217,122,50,0.10)"
+                      : COLORS.surfaceSoft,
+                    border: offer.isNearby
+                      ? "1px solid rgba(217,122,50,0.30)"
+                      : `1px solid ${COLORS.border}`,
+                  }}
+                >
                   <div
-                    key={offer.id}
                     style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: offer.isNearby
-                        ? "rgba(212,175,55,0.10)"
-                        : COLORS.surfaceSoft,
-                      border: offer.isNearby
-                        ? "1px solid rgba(212,175,55,0.30)"
-                        : `1px solid ${COLORS.border}`,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          color: COLORS.goldLight,
+                          fontWeight: 800,
+                          fontSize: 20,
+                          marginBottom: 4,
+                        }}
+                      >
+                        {offer.title}
+                      </div>
+
+                      <div
+                        style={{
+                          color: COLORS.text,
+                          fontWeight: 700,
+                          marginBottom: 4,
+                        }}
+                      >
+                        {offer.businessName}
+                      </div>
+
+                      <div
+                        style={{
+                          color: COLORS.textSoft,
+                          fontSize: 13,
+                        }}
+                      >
+                        {offer.city} • {offer.zoneLabel}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 8,
+                        justifyItems: "end",
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 999,
+                          background: "rgba(212,175,55,0.12)",
+                          border: `1px solid ${COLORS.gold}`,
+                          color: COLORS.goldLight,
+                          fontWeight: 800,
+                          fontSize: 12,
+                        }}
+                      >
+                        {getOfferBadge(offer.type)}
+                      </span>
+
+                      <span
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 999,
+                          background: "rgba(201,75,50,0.12)",
+                          border: "1px solid rgba(201,75,50,0.35)",
+                          color: "#f5b09f",
+                          fontWeight: 800,
+                          fontSize: 12,
+                        }}
+                      >
+                        {getOfferUrgencyLabel(offer)}
+                      </span>
+
+                      <span
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.04)",
+                          border: `1px solid ${COLORS.border}`,
+                          color: COLORS.text,
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      >
+                        {Number.isFinite(offer.distanceKm)
+                          ? getDistanceLabel(offer.distanceKm)
+                          : offer.zoneLabel || "Dans votre zone"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      color: COLORS.textSoft,
+                      lineHeight: 1.6,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {offer.description}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      alignItems: "center",
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        marginBottom: 10,
+                        color:
+                          offer.type === "flash"
+                            ? "#f5b09f"
+                            : COLORS.copperLight,
+                        fontWeight: 800,
+                        fontSize: 14,
                       }}
                     >
-                      <div>
-                        <div
-                          style={{
-                            color: COLORS.goldLight,
-                            fontWeight: 800,
-                            fontSize: 20,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {offer.title}
-                        </div>
-
-                        <div
-                          style={{
-                            color: COLORS.text,
-                            fontWeight: 700,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {offer.businessName}
-                        </div>
-
-                        <div
-                          style={{
-                            color: COLORS.textSoft,
-                            fontSize: 13,
-                          }}
-                        >
-                          {offer.city} • {offer.zoneLabel}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 8,
-                          justifyItems: "end",
-                        }}
-                      >
-                        <span
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 999,
-                            background: "rgba(212,175,55,0.12)",
-                            border: `1px solid ${COLORS.gold}`,
-                            color: COLORS.goldLight,
-                            fontWeight: 800,
-                            fontSize: 12,
-                          }}
-                        >
-                          {getOfferBadge(offer.type)}
-                        </span>
-
-                        <span
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 999,
-                            background: "rgba(201,75,50,0.12)",
-                            border: "1px solid rgba(201,75,50,0.35)",
-                            color: "#f5b09f",
-                            fontWeight: 800,
-                            fontSize: 12,
-                          }}
-                        >
-                          {getOfferUrgencyLabel(offer)}
-                        </span>
-
-                        <span
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 999,
-                            background: "rgba(255,255,255,0.04)",
-                            border: `1px solid ${COLORS.border}`,
-                            color: COLORS.text,
-                            fontWeight: 700,
-                            fontSize: 12,
-                          }}
-                        >
-                          {Number.isFinite(offer.distanceKm)
-                            ? getDistanceLabel(offer.distanceKm)
-                            : offer.zoneLabel || "Dans votre zone"}
-                        </span>
-                      </div>
+                      {offer.discountLabel}
                     </div>
 
-                    <div
-                      style={{
-                        color: COLORS.textSoft,
-                        lineHeight: 1.6,
-                        marginBottom: 14,
-                      }}
-                    >
-                      {offer.description}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          color:
-                            offer.type === "flash"
-                              ? "#f5b09f"
-                              : COLORS.goldLight,
-                          fontWeight: 800,
-                          fontSize: 14,
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        onClick={() => {
+                          const business = BUSINESSES.find(
+                            (b) => b.id === offer.businessId
+                          );
+                          if (!business) return;
+                          const zoneMeta = ZONES.find(
+                            (z) => z.id === business.zoneId
+                          );
+                          setLocationMode("manual");
+                          setSelectedZone(business.zoneId);
+                          setSelectedBusinessId(business.id);
+                          if (zoneMeta) {
+                            setSelectedCountry(zoneMeta.country);
+                            setSelectedCity(zoneMeta.city);
+                            setSelectedSector(zoneMeta.id);
+                          }
                         }}
+                        style={copperButton()}
                       >
-                        {offer.discountLabel}
-                      </div>
+                        Voir le commerce
+                      </button>
 
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => {
-                            const business = BUSINESSES.find(
-                              (b) => b.id === offer.businessId
-                            );
-                            if (!business) return;
-                            setSelectedZone(business.zoneId);
-                            setSelectedBusinessId(business.id);
-                          }}
-                          style={goldButton()}
-                        >
-                          Voir le commerce
-                        </button>
-
-                        <a
-                          href={offer.googleMapsUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ textDecoration: "none" }}
-                        >
-                          <button style={ghostButton()}>Itinéraire</button>
-                        </a>
-                      </div>
+                      <a
+                        href={offer.googleMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ textDecoration: "none" }}
+                      >
+                        <button style={ghostButton()}>Itinéraire</button>
+                      </a>
                     </div>
                   </div>
-                ))
+                </div>
+              ))
             )}
           </div>
+
+          {filteredOffers.filter((o) => o.id !== featuredOffer?.id).length > 4 ? (
+            <div style={{ marginTop: 16 }}>
+              <button
+                onClick={() => setShowAllOffers((prev) => !prev)}
+                style={copperButton()}
+              >
+                {showAllOffers
+                  ? "Voir moins"
+                  : hiddenOffersCount > 0
+                  ? `Voir plus (${hiddenOffersCount})`
+                  : "Voir toutes les offres"}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -1478,21 +1761,105 @@ export default function ClientApp() {
               fontWeight: 700,
             }}
           >
-            Zone géographique
+            Pays
           </label>
 
           <select
-            value={selectedZone}
+            value={selectedCountry}
+            onChange={(e) => {
+              const nextCountry = e.target.value;
+              const nextCities = [
+                ...new Set(
+                  ZONES.filter((z) => z.country === nextCountry).map(
+                    (z) => z.city
+                  )
+                ),
+              ];
+              const nextCity = nextCities[0] || "";
+              const nextSectorMeta =
+                ZONES.find(
+                  (z) => z.country === nextCountry && z.city === nextCity
+                ) || null;
+
+              setLocationMode("manual");
+              setSelectedCountry(nextCountry);
+              setSelectedCity(nextCity);
+              setSelectedSector(nextSectorMeta?.id || "");
+              setSelectedZone(nextSectorMeta?.id || "");
+              setSelectedBusinessId("");
+            }}
+            style={inputStyle()}
+          >
+            {availableCountries.map((country) => (
+              <option key={country} value={country}>
+                {country}
+              </option>
+            ))}
+          </select>
+
+          <label
+            style={{
+              display: "block",
+              fontSize: 13,
+              color: COLORS.textSoft,
+              marginTop: 14,
+              marginBottom: 8,
+              fontWeight: 700,
+            }}
+          >
+            Ville
+          </label>
+
+          <select
+            value={selectedCity}
+            onChange={(e) => {
+              const nextCity = e.target.value;
+              const nextSectorMeta =
+                ZONES.find(
+                  (z) => z.country === selectedCountry && z.city === nextCity
+                ) || null;
+
+              setLocationMode("manual");
+              setSelectedCity(nextCity);
+              setSelectedSector(nextSectorMeta?.id || "");
+              setSelectedZone(nextSectorMeta?.id || "");
+              setSelectedBusinessId("");
+            }}
+            style={inputStyle()}
+          >
+            {availableCities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+
+          <label
+            style={{
+              display: "block",
+              fontSize: 13,
+              color: COLORS.textSoft,
+              marginTop: 14,
+              marginBottom: 8,
+              fontWeight: 700,
+            }}
+          >
+            Secteur
+          </label>
+
+          <select
+            value={selectedSector}
             onChange={(e) => {
               setLocationMode("manual");
+              setSelectedSector(e.target.value);
               setSelectedZone(e.target.value);
               setSelectedBusinessId("");
             }}
             style={inputStyle()}
           >
-            {ZONES.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.label}
+            {availableSectors.map((zone) => (
+              <option key={zone.id} value={zone.id}>
+                {zone.label}
               </option>
             ))}
           </select>
@@ -1546,6 +1913,7 @@ export default function ClientApp() {
         </div>
 
         <div
+          id="carte"
           style={{
             background: "linear-gradient(135deg, #111111, #161616)",
             border: `1px solid ${COLORS.border}`,
@@ -1617,10 +1985,10 @@ export default function ClientApp() {
             <div
               style={{
                 width: `${Math.min(progress, 100)}%`,
-                background: "linear-gradient(90deg, #D4AF37, #F2D06B)",
+                background: "linear-gradient(90deg, #D97A32, #F2A65A)",
                 height: "100%",
                 borderRadius: 999,
-                boxShadow: "0 0 14px rgba(212,175,55,0.35)",
+                boxShadow: "0 0 14px rgba(217,122,50,0.35)",
               }}
             />
           </div>
@@ -1738,12 +2106,12 @@ export default function ClientApp() {
               style={{
                 padding: "9px 14px",
                 borderRadius: 999,
-                background: "rgba(212,175,55,0.10)",
-                border: `1px solid ${COLORS.gold}`,
-                color: COLORS.goldLight,
+                background: "rgba(217,122,50,0.12)",
+                border: `1px solid ${COLORS.copper}`,
+                color: COLORS.copperLight,
                 fontWeight: 800,
                 fontSize: 14,
-                boxShadow: "0 0 12px rgba(212,175,55,0.12)",
+                boxShadow: "0 0 12px rgba(217,122,50,0.12)",
               }}
             >
               {selectedBusiness.points} points
@@ -1824,10 +2192,10 @@ export default function ClientApp() {
                 <div
                   style={{
                     width: `${Math.min(progress, 100)}%`,
-                    background: "linear-gradient(90deg, #D4AF37, #F2D06B)",
+                    background: "linear-gradient(90deg, #D97A32, #F2A65A)",
                     height: "100%",
                     borderRadius: 999,
-                    boxShadow: "0 0 16px rgba(212,175,55,0.28)",
+                    boxShadow: "0 0 16px rgba(217,122,50,0.28)",
                   }}
                 />
               </div>
@@ -1939,24 +2307,32 @@ export default function ClientApp() {
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={handleEnableNotifications} style={goldButton()}>
+            <button onClick={handleEnableNotifications} style={copperButton()}>
               Recevoir mes offres
             </button>
 
-            <button
-              onClick={async () => {
-                if (deferredPrompt) {
-                  deferredPrompt.prompt();
-                  await deferredPrompt.userChoice;
-                  setDeferredPrompt(null);
-                } else {
-                  alert("Ajoutez l'application via votre navigateur 📲");
-                }
-              }}
-              style={ghostButton()}
-            >
-              Installer Zeltyo
-            </button>
+           <button
+  onClick={async () => {
+    try {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        console.log("Choix installation :", choice);
+        setDeferredPrompt(null);
+      } else {
+        alert(
+          "Installation non proposée pour le moment. Vérifiez le manifest, le service worker ou utilisez le menu du navigateur."
+        );
+      }
+    } catch (error) {
+      console.error("Erreur installation :", error);
+      alert("Impossible de lancer l'installation pour le moment.");
+    }
+  }}
+  style={ghostButton()}
+>
+  Installer Zeltyo
+</button>
           </div>
 
           <div
@@ -1999,6 +2375,7 @@ export default function ClientApp() {
         </div>
 
         <div
+          id="commerce"
           style={{
             background: COLORS.surface,
             border: `1px solid ${COLORS.border}`,
@@ -2059,12 +2436,13 @@ export default function ClientApp() {
               target="_blank"
               rel="noreferrer"
             >
-              <button style={goldButton()}>Voir sur Google Maps</button>
+              <button style={copperButton()}>Voir sur Google Maps</button>
             </a>
           </div>
         </div>
 
         <div
+          id="avis"
           style={{
             background: COLORS.surface,
             border: `1px solid ${COLORS.border}`,
@@ -2116,17 +2494,31 @@ function inputStyle() {
   };
 }
 
-function goldButton() {
+function copperButton() {
   return {
-    background: "linear-gradient(135deg, #D4AF37, #F2D06B)",
+    background: "linear-gradient(135deg, #D97A32, #F2A65A)",
     color: "#111111",
     border: "none",
     padding: "13px 18px",
     borderRadius: 14,
     cursor: "pointer",
     fontWeight: 800,
-    boxShadow: "0 12px 24px rgba(212,175,55,0.22)",
+    boxShadow: "0 12px 24px rgba(217,122,50,0.22)",
     fontSize: 14,
+  };
+}
+
+function copperButtonSmall() {
+  return {
+    background: "linear-gradient(135deg, #D97A32, #F2A65A)",
+    color: "#111111",
+    border: "none",
+    padding: "10px 12px",
+    borderRadius: 12,
+    cursor: "pointer",
+    fontWeight: 800,
+    boxShadow: "0 10px 20px rgba(217,122,50,0.20)",
+    fontSize: 13,
   };
 }
 
@@ -2144,9 +2536,23 @@ function ghostButton() {
   };
 }
 
+function ghostButtonSmall() {
+  return {
+    background: "linear-gradient(180deg, #161616, #101010)",
+    color: COLORS.text,
+    border: `1px solid ${COLORS.border}`,
+    padding: "10px 12px",
+    borderRadius: 12,
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 13,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+  };
+}
+
 function reviewButton() {
   return {
-    background: "linear-gradient(135deg, #C94B32, #D4AF37)",
+    background: "linear-gradient(135deg, #C94B32, #D97A32)",
     color: "#111111",
     border: "none",
     padding: "12px 16px",
@@ -2165,7 +2571,7 @@ function InfoCard({ label, value, accent }) {
       style={{
         padding: 14,
         borderRadius: 16,
-        background: isRed ? "rgba(201,75,50,0.14)" : "rgba(212,175,55,0.12)",
+        background: isRed ? "rgba(201,75,50,0.14)" : "rgba(217,122,50,0.12)",
         border: `1px solid ${COLORS.border}`,
       }}
     >
@@ -2184,7 +2590,7 @@ function InfoCard({ label, value, accent }) {
         style={{
           fontSize: 18,
           fontWeight: 800,
-          color: isRed ? "#f5b09f" : COLORS.goldLight,
+          color: isRed ? "#f5b09f" : COLORS.copperLight,
         }}
       >
         {value}
@@ -2240,10 +2646,10 @@ function PremiumStatusCard({ label, value, highlight }) {
         padding: "12px 14px",
         borderRadius: 14,
         background: highlight
-          ? "rgba(212,175,55,0.10)"
+          ? "rgba(217,122,50,0.10)"
           : "rgba(255,255,255,0.03)",
         border: `1px solid ${
-          highlight ? "rgba(212,175,55,0.30)" : COLORS.border
+          highlight ? "rgba(217,122,50,0.30)" : COLORS.border
         }`,
       }}
     >
@@ -2258,7 +2664,7 @@ function PremiumStatusCard({ label, value, highlight }) {
 
       <span
         style={{
-          color: highlight ? COLORS.goldLight : COLORS.text,
+          color: highlight ? COLORS.copperLight : COLORS.text,
           fontWeight: 800,
           fontSize: 14,
           textAlign: "right",
