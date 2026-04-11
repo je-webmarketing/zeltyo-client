@@ -794,6 +794,7 @@ if (isLocalhost) {
       console.log("OneSignal optedIn :", status.optedIn);
       console.log("OneSignal subscriptionId :", status.subscriptionId);
       console.log("OneSignal token :", status.token);
+      console.log("DeferredPrompt =", deferredPrompt);
 
       setOneSignalReady(true);
       setPermission(Boolean(status.permission));
@@ -2327,28 +2328,30 @@ if (isLocalhost) {
 
            {deferredPrompt && (
   <button
-    onClick={async () => {
-  try {
-    if (!deferredPrompt) {
-      alert(
-        "Installation non proposée pour le moment. Vérifiez le manifest, le service worker ou utilisez le menu du navigateur."
-      );
-      return;
-    }
+  onClick={async () => {
+    try {
+      console.log("DeferredPrompt =", deferredPrompt);
 
-    await deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    console.log("Choix installation :", choice);
-    setDeferredPrompt(null);
-  } catch (error) {
-    console.error("Erreur installation :", error);
-    alert("Impossible de lancer l'installation pour le moment.");
-  }
-}}
-    style={ghostButton()}
-  >
-    Installer Zeltyo
-  </button>
+      if (!deferredPrompt) {
+        alert(
+          "Installation non proposée pour le moment. Vérifiez le manifest, le service worker ou utilisez le menu du navigateur."
+        );
+        return;
+      }
+
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      console.log("Choix installation :", choice);
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error("Erreur installation :", error);
+      alert("Impossible de lancer l'installation pour le moment.");
+    }
+  }}
+  style={ghostButton()}
+>
+  Installer Zeltyo
+</button>
 )}
           </div>
 
