@@ -360,6 +360,20 @@ export default function ClientApp() {
   const [offerFilter, setOfferFilter] = useState("all");
   const [showAllOffers, setShowAllOffers] = useState(false);
 
+  useEffect(() => {
+  const handler = (e) => {
+    e.preventDefault();
+    console.log("beforeinstallprompt capturé ✅");
+    setDeferredPrompt(e);
+  };
+
+  window.addEventListener("beforeinstallprompt", handler);
+
+  return () => {
+    window.removeEventListener("beforeinstallprompt", handler);
+  };
+}, []);
+
   const [geoState, setGeoState] = useState({
     loading: false,
     error: "",
@@ -2311,28 +2325,31 @@ if (isLocalhost) {
               Recevoir mes offres
             </button>
 
-           <button
-  onClick={async () => {
-    try {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        console.log("Choix installation :", choice);
-        setDeferredPrompt(null);
-      } else {
-        alert(
-          "Installation non proposée pour le moment. Vérifiez le manifest, le service worker ou utilisez le menu du navigateur."
-        );
-      }
-    } catch (error) {
-      console.error("Erreur installation :", error);
-      alert("Impossible de lancer l'installation pour le moment.");
+           {deferredPrompt && (
+  <button
+    onClick={async () => {
+  try {
+    if (!deferredPrompt) {
+      alert(
+        "Installation non proposée pour le moment. Vérifiez le manifest, le service worker ou utilisez le menu du navigateur."
+      );
+      return;
     }
-  }}
-  style={ghostButton()}
->
-  Installer Zeltyo
-</button>
+
+    await deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    console.log("Choix installation :", choice);
+    setDeferredPrompt(null);
+  } catch (error) {
+    console.error("Erreur installation :", error);
+    alert("Impossible de lancer l'installation pour le moment.");
+  }
+}}
+    style={ghostButton()}
+  >
+    Installer Zeltyo
+  </button>
+)}
           </div>
 
           <div
