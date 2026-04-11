@@ -932,7 +932,7 @@ if (isLocalhost) {
               }}
             >
               <img
-                src="/logo.png"
+                src="/icon-512.png"
                 alt="Zeltyo"
                 style={{
                   width: 84,
