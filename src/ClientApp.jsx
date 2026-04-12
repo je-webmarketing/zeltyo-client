@@ -7,12 +7,10 @@ import {
 } from "./lib/onesignal";
 import { buildApiUrl } from "./config/api";
 
-const STORAGE_SELECTED_BUSINESS = "zeltyo_selected_business_id";
-const STORAGE_SELECTED_ZONE = "zeltyo_selected_zone";
-const STORAGE_LOCATION_MODE = "zeltyo_location_mode";
-const STORAGE_SELECTED_COUNTRY = "zeltyo_selected_country";
-const STORAGE_SELECTED_CITY = "zeltyo_selected_city";
-const STORAGE_SELECTED_SECTOR = "zeltyo_selected_sector";
+
+const STORAGE_MERCHANT_CONTACT = "zeltyo_merchant_contact";
+const STORAGE_PROGRAM_SETTINGS = "zeltyo_program_settings";
+const STORAGE_PROMOTIONS = "zeltyo_promotions";
 
 const COLORS = {
   bg: "#050505",
@@ -31,241 +29,7 @@ const COLORS = {
   blackCard: "#0B0B0B",
 };
 
-const ZONES = [
-  {
-    id: "geneve-centre",
-    country: "CH",
-    region: "Genève",
-    city: "Genève",
-    label: "Genève Centre",
-    radiusKm: 1.5,
-  },
-  {
-    id: "lausanne-centre",
-    country: "CH",
-    region: "Vaud",
-    city: "Lausanne",
-    label: "Lausanne Centre",
-    radiusKm: 2,
-  },
-  {
-    id: "lyon-centre",
-    country: "FR",
-    region: "Rhône",
-    city: "Lyon",
-    label: "Lyon Centre",
-    radiusKm: 3,
-  },
-  {
-    id: "montpellier-centre",
-    country: "FR",
-    region: "Hérault",
-    city: "Montpellier",
-    label: "Montpellier Centre",
-    radiusKm: 3,
-  },
-  {
-    id: "paris-centre",
-    country: "FR",
-    region: "Paris",
-    city: "Paris",
-    label: "Paris Centre",
-    radiusKm: 2,
-  },
-];
 
-const BUSINESSES = [
-  {
-    id: "BUS-1",
-    name: "Le Café du Centre",
-    country: "CH",
-    region: "Genève",
-    city: "Genève",
-    zoneId: "geneve-centre",
-    zoneLabel: "Genève Centre",
-    radiusKm: 1.5,
-    displayRadiusKm: 20,
-    rewardGoal: 10,
-    rewardLabel: "1 boisson offerte",
-    points: 8,
-    promo: "Petit-déjeuner -10%",
-    color: "#D4AF37",
-    description: "Cumulez vos points et débloquez votre récompense premium.",
-    address: "12 rue du Centre, Genève",
-    lat: 46.2044,
-    lng: 6.1432,
-    googleMapsUrl: "https://www.google.com/maps?q=46.2044,6.1432",
-    reviewUrl:
-      "https://search.google.com/local/writereview?placeid=TON_PLACE_ID_1",
-    offers: [
-      {
-        id: "OFF-1",
-        title: "Petit-déjeuner -10%",
-        description:
-          "Profitez d’une remise matinale sur votre formule café + viennoiserie.",
-        type: "flash",
-        discountLabel: "-10%",
-        validToday: true,
-        limited: true,
-      },
-      {
-        id: "OFF-2",
-        title: "Boisson fidélité",
-        description:
-          "À partir de 10 passages, une boisson offerte vous attend.",
-        type: "reward",
-        discountLabel: "Offert",
-        validToday: true,
-        limited: false,
-      },
-    ],
-  },
-  {
-    id: "BUS-2",
-    name: "Barber Club",
-    country: "CH",
-    region: "Vaud",
-    city: "Lausanne",
-    zoneId: "lausanne-centre",
-    zoneLabel: "Lausanne Centre",
-    radiusKm: 2,
-    displayRadiusKm: 20,
-    rewardGoal: 6,
-    rewardLabel: "1 coupe -50%",
-    points: 0,
-    promo: "Soin barbe offert",
-    color: "#C94B32",
-    description: "Profitez d’avantages fidélité exclusifs à chaque passage.",
-    address: "8 avenue Centrale, Lausanne",
-    lat: 46.5197,
-    lng: 6.6323,
-    googleMapsUrl: "https://www.google.com/maps?q=46.5197,6.6323",
-    reviewUrl:
-      "https://search.google.com/local/writereview?placeid=TON_PLACE_ID_2",
-    offers: [
-      {
-        id: "OFF-3",
-        title: "Soin barbe offert",
-        description: "Pour toute coupe réservée aujourd’hui.",
-        type: "flash",
-        discountLabel: "Offert",
-        validToday: true,
-        limited: true,
-      },
-      {
-        id: "OFF-4",
-        title: "Coupe fidélité",
-        description: "À partir de 6 passages, une coupe à -50%.",
-        type: "reward",
-        discountLabel: "-50%",
-        validToday: true,
-        limited: false,
-      },
-    ],
-  },
-  {
-    id: "BUS-3",
-    name: "Boulangerie Signature",
-    country: "FR",
-    region: "Rhône",
-    city: "Lyon",
-    zoneId: "lyon-centre",
-    zoneLabel: "Lyon Centre",
-    radiusKm: 3,
-    displayRadiusKm: 20,
-    rewardGoal: 8,
-    rewardLabel: "1 formule offerte",
-    points: 5,
-    promo: "Viennoiserie offerte dès 15€",
-    color: "#D4AF37",
-    description: "Des avantages gourmands à chaque visite dans votre quartier.",
-    address: "25 rue de la République, Lyon",
-    lat: 45.764,
-    lng: 4.8357,
-    googleMapsUrl: "https://www.google.com/maps?q=45.764,4.8357",
-    reviewUrl:
-      "https://search.google.com/local/writereview?placeid=TON_PLACE_ID_3",
-    offers: [
-      {
-        id: "OFF-5",
-        title: "Viennoiserie offerte",
-        description: "Recevez une viennoiserie offerte dès 15€ d’achat.",
-        type: "flash",
-        discountLabel: "Offert",
-        validToday: true,
-        limited: false,
-      },
-    ],
-  },
-  {
-    id: "BUS-4",
-    name: "Maison Gourmande",
-    country: "FR",
-    region: "Hérault",
-    city: "Montpellier",
-    zoneId: "montpellier-centre",
-    zoneLabel: "Montpellier Centre",
-    radiusKm: 3,
-    displayRadiusKm: 20,
-    rewardGoal: 10,
-    rewardLabel: "1 pâtisserie offerte",
-    points: 3,
-    promo: "Formule déjeuner -15%",
-    color: "#D4AF37",
-    description: "Des offres gourmandes au cœur de Montpellier.",
-    address: "18 place de la Comédie, Montpellier",
-    lat: 43.6083,
-    lng: 3.8794,
-    googleMapsUrl: "https://www.google.com/maps?q=43.6083,3.8794",
-    reviewUrl:
-      "https://search.google.com/local/writereview?placeid=TON_PLACE_ID_4",
-    offers: [
-      {
-        id: "OFF-6",
-        title: "Formule déjeuner -15%",
-        description: "Une remise immédiate sur votre formule du midi.",
-        type: "flash",
-        discountLabel: "-15%",
-        validToday: true,
-        limited: false,
-      },
-    ],
-  },
-  {
-    id: "BUS-5",
-    name: "Café Lumière",
-    country: "FR",
-    region: "Paris",
-    city: "Paris",
-    zoneId: "paris-centre",
-    zoneLabel: "Paris Centre",
-    radiusKm: 2,
-    displayRadiusKm: 20,
-    rewardGoal: 12,
-    rewardLabel: "1 brunch offert",
-    points: 7,
-    promo: "Café spécialité -20%",
-    color: "#C94B32",
-    description: "Une fidélité premium au cœur de Paris.",
-    address: "10 rue de Rivoli, Paris",
-    lat: 48.8566,
-    lng: 2.3522,
-    googleMapsUrl: "https://www.google.com/maps?q=48.8566,2.3522",
-    reviewUrl:
-      "https://search.google.com/local/writereview?placeid=TON_PLACE_ID_5",
-    offers: [
-      {
-        id: "OFF-7",
-        title: "Café spécialité -20%",
-        description: "Profitez d’une remise sur votre café signature.",
-        type: "exclusive",
-        discountLabel: "-20%",
-        validToday: true,
-        limited: false,
-      },
-    ],
-  },
-];
 
 function toRad(value) {
   return (value * Math.PI) / 180;
@@ -325,31 +89,7 @@ function getOfferUrgencyLabel(offer) {
 }
 
 export default function ClientApp() {
-  const initialZoneId =
-    localStorage.getItem(STORAGE_SELECTED_ZONE) || "geneve-centre";
-  const initialZone =
-    ZONES.find((z) => z.id === initialZoneId) || ZONES[0] || null;
-
-  const [selectedZone, setSelectedZone] = useState(initialZone?.id || "");
-  const [selectedCountry, setSelectedCountry] = useState(
-    localStorage.getItem(STORAGE_SELECTED_COUNTRY) ||
-      initialZone?.country ||
-      "CH"
-  );
-  const [selectedCity, setSelectedCity] = useState(
-    localStorage.getItem(STORAGE_SELECTED_CITY) || initialZone?.city || ""
-  );
-  const [selectedSector, setSelectedSector] = useState(
-    localStorage.getItem(STORAGE_SELECTED_SECTOR) || initialZone?.id || ""
-  );
-
-  const [selectedBusinessId, setSelectedBusinessId] = useState(() => {
-    return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || "BUS-1";
-  });
-
-  const [locationMode, setLocationMode] = useState(() => {
-    return localStorage.getItem(STORAGE_LOCATION_MODE) || "auto";
-  });
+const [locationMode, setLocationMode] = useState("auto");
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
@@ -360,19 +100,32 @@ export default function ClientApp() {
   const [offerFilter, setOfferFilter] = useState("all");
   const [showAllOffers, setShowAllOffers] = useState(false);
 
-  useEffect(() => {
-  const handler = (e) => {
-    e.preventDefault();
-    console.log("beforeinstallprompt capturé ✅");
-    setDeferredPrompt(e);
-  };
+  const [merchantContact, setMerchantContact] = useState(null);
+const [programSettings, setProgramSettings] = useState(null);
+const [merchantPromotions, setMerchantPromotions] = useState([]);
 
-  window.addEventListener("beforeinstallprompt", handler);
+useEffect(() => {
+  try {
+    const rawMerchantContact = localStorage.getItem(STORAGE_MERCHANT_CONTACT);
+    const rawProgramSettings = localStorage.getItem(STORAGE_PROGRAM_SETTINGS);
+    const rawPromotions = localStorage.getItem(STORAGE_PROMOTIONS);
 
-  return () => {
-    window.removeEventListener("beforeinstallprompt", handler);
-  };
+    if (rawMerchantContact) {
+      setMerchantContact(JSON.parse(rawMerchantContact));
+    }
+
+    if (rawProgramSettings) {
+      setProgramSettings(JSON.parse(rawProgramSettings));
+    }
+
+    if (rawPromotions) {
+      setMerchantPromotions(JSON.parse(rawPromotions));
+    }
+  } catch (error) {
+    console.error("Erreur lecture données commerçant côté client :", error);
+  }
 }, []);
+
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -380,30 +133,7 @@ export default function ClientApp() {
     coords: null,
   });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTED_ZONE, selectedZone);
-  }, [selectedZone]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTED_BUSINESS, selectedBusinessId);
-  }, [selectedBusinessId]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_LOCATION_MODE, locationMode);
-  }, [locationMode]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTED_COUNTRY, selectedCountry);
-  }, [selectedCountry]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTED_CITY, selectedCity);
-  }, [selectedCity]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTED_SECTOR, selectedSector);
-  }, [selectedSector]);
-
+ 
   const requestUserLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
       setGeoState({
@@ -457,16 +187,7 @@ export default function ClientApp() {
     );
   }, []);
 
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
+  
   useEffect(() => {
   let isMounted = true;
 
@@ -504,245 +225,154 @@ export default function ClientApp() {
   };
 }, []);
 
+ 
   useEffect(() => {
-    if (locationMode === "auto") {
-      requestUserLocation();
-    }
-  }, [locationMode, requestUserLocation]);
+  setShowAllOffers(false);
+}, [offerFilter, merchantPromotions]);
 
-  const businessesWithDistance = useMemo(() => {
-    if (!geoState.coords) return [];
+ const dynamicBusiness = useMemo(() => {
+  const activePromotions = merchantPromotions.filter(
+    (p) => p.status === "Active"
+  );
 
-    return BUSINESSES.map((business) => {
-      const distanceKm = getDistanceKm(
+  return {
+    id: "BUS-DYNAMIC",
+    name: merchantContact?.shopName || "Mon Commerce",
+    country:
+      merchantContact?.country ||
+      programSettings?.locationSettings?.country ||
+      "",
+    region: "",
+    city:
+      merchantContact?.city ||
+      programSettings?.locationSettings?.city ||
+      "",
+    zoneId: "dynamic-zone",
+    zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
+    radiusKm: Number(programSettings?.locationSettings?.radiusKm || 0),
+    displayRadiusKm: Number(programSettings?.locationSettings?.radiusKm || 20),
+    rewardGoal: Number(programSettings?.rewardGoal || 10),
+    rewardLabel: programSettings?.rewardLabel || "1 récompense",
+    points: 0,
+    promo: activePromotions[0]?.title || "Aucune promotion active",
+    color: programSettings?.primaryColor || "#D4AF37",
+    description: "Retrouvez vos avantages fidélité et vos offres en cours.",
+    address: merchantContact?.address || "",
+    lat: programSettings?.locationSettings?.latitude
+      ? Number(programSettings.locationSettings.latitude)
+      : null,
+    lng: programSettings?.locationSettings?.longitude
+      ? Number(programSettings.locationSettings.longitude)
+      : null,
+    googleMapsUrl:
+      programSettings?.locationSettings?.latitude &&
+      programSettings?.locationSettings?.longitude
+        ? `https://www.google.com/maps?q=${programSettings.locationSettings.latitude},${programSettings.locationSettings.longitude}`
+        : merchantContact?.website || "#",
+    reviewUrl: merchantContact?.reviewUrl || "",
+    offers: activePromotions.map((promo, index) => ({
+      id: promo.id || `PROMO-${index + 1}`,
+      title: promo.title,
+      description: promo.description,
+      type: "flash",
+      discountLabel: promo.code || "Offre",
+      validToday: true,
+      limited: false,
+      ctaLabel: promo.ctaLabel || "",
+      ctaUrl: promo.ctaUrl || "",
+      businessId: "BUS-DYNAMIC",
+      businessName: merchantContact?.shopName || "Mon Commerce",
+      city:
+        merchantContact?.city ||
+        programSettings?.locationSettings?.city ||
+        "",
+      zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
+      googleMapsUrl:
+        programSettings?.locationSettings?.latitude &&
+        programSettings?.locationSettings?.longitude
+          ? `https://www.google.com/maps?q=${programSettings.locationSettings.latitude},${programSettings.locationSettings.longitude}`
+          : merchantContact?.website || "#",
+      distanceKm:
+        geoState.coords &&
+        programSettings?.locationSettings?.latitude &&
+        programSettings?.locationSettings?.longitude
+          ? getDistanceKm(
+              geoState.coords.lat,
+              geoState.coords.lng,
+              Number(programSettings.locationSettings.latitude),
+              Number(programSettings.locationSettings.longitude)
+            )
+          : Infinity,
+      isNearby: true,
+    })),
+  };
+}, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
+
+const selectedBusiness = dynamicBusiness;
+
+const selectedBusinessDistance =
+  geoState.coords &&
+  selectedBusiness?.lat != null &&
+  selectedBusiness?.lng != null
+    ? getDistanceKm(
         geoState.coords.lat,
         geoState.coords.lng,
-        business.lat,
-        business.lng
-      );
-
-      return {
-        ...business,
-        distanceKm,
-        isNearby: distanceKm <= (business.displayRadiusKm || 20),
-      };
-    }).sort((a, b) => a.distanceKm - b.distanceKm);
-  }, [geoState.coords]);
-
-  const nearbyBusinesses = useMemo(() => {
-    return businessesWithDistance.filter((business) => business.isNearby);
-  }, [businessesWithDistance]);
-
-  const nearbyOffers = useMemo(() => {
-    const source = businessesWithDistance.length
-      ? businessesWithDistance
-      : BUSINESSES.map((business) => ({
-          ...business,
-          distanceKm: Infinity,
-          isNearby: false,
-        }));
-
-    return source
-      .flatMap((business) =>
-        (business.offers || []).map((offer) => ({
-          ...offer,
-          businessId: business.id,
-          businessName: business.name,
-          city: business.city,
-          zoneLabel: business.zoneLabel,
-          googleMapsUrl: business.googleMapsUrl,
-          distanceKm: business.distanceKm,
-          isNearby:
-            Number.isFinite(business.distanceKm) &&
-            business.distanceKm <= (business.displayRadiusKm || 20),
-        }))
+        selectedBusiness.lat,
+        selectedBusiness.lng
       )
-      .sort((a, b) => {
-        const aDistance = Number.isFinite(a.distanceKm) ? a.distanceKm : 999999;
-        const bDistance = Number.isFinite(b.distanceKm) ? b.distanceKm : 999999;
-        return aDistance - bDistance;
-      });
-  }, [businessesWithDistance]);
+    : null;
 
-  const filteredOffers = useMemo(() => {
-    if (offerFilter === "all") return nearbyOffers;
-    return nearbyOffers.filter((offer) => offer.type === offerFilter);
-  }, [nearbyOffers, offerFilter]);
+const nearbyOffers = selectedBusiness.offers || [];
 
-  const featuredOffer = useMemo(() => {
-    if (!nearbyOffers.length) return null;
+const filteredOffers = useMemo(() => {
+  if (offerFilter === "all") return nearbyOffers;
+  return nearbyOffers.filter((offer) => offer.type === offerFilter);
+}, [nearbyOffers, offerFilter]);
 
-    const ranked = [...nearbyOffers].sort((a, b) => {
-      const aScore =
-        (a.type === "flash" ? 30 : 0) +
-        (a.validToday ? 20 : 0) +
-        (a.limited ? 15 : 0) +
-        (Number.isFinite(a.distanceKm) ? Math.max(0, 20 - a.distanceKm) : 0);
+const featuredOffer = useMemo(() => {
+  if (!nearbyOffers.length) return null;
 
-      const bScore =
-        (b.type === "flash" ? 30 : 0) +
-        (b.validToday ? 20 : 0) +
-        (b.limited ? 15 : 0) +
-        (Number.isFinite(b.distanceKm) ? Math.max(0, 20 - b.distanceKm) : 0);
+  const ranked = [...nearbyOffers].sort((a, b) => {
+    const aScore =
+      (a.type === "flash" ? 30 : 0) +
+      (a.validToday ? 20 : 0) +
+      (a.limited ? 15 : 0) +
+      (Number.isFinite(a.distanceKm) ? Math.max(0, 20 - a.distanceKm) : 0);
 
-      return bScore - aScore;
-    });
+    const bScore =
+      (b.type === "flash" ? 30 : 0) +
+      (b.validToday ? 20 : 0) +
+      (b.limited ? 15 : 0) +
+      (Number.isFinite(b.distanceKm) ? Math.max(0, 20 - b.distanceKm) : 0);
 
-    return ranked[0] || null;
-  }, [nearbyOffers]);
+    return bScore - aScore;
+  });
 
-  const availableCountries = useMemo(() => {
-    return [...new Set(ZONES.map((z) => z.country))];
-  }, []);
+  return ranked[0] || null;
+}, [nearbyOffers]);
 
-  const availableCities = useMemo(() => {
-    return [
-      ...new Set(
-        ZONES.filter((z) => z.country === selectedCountry).map((z) => z.city)
-      ),
-    ];
-  }, [selectedCountry]);
+const progress = selectedBusiness
+  ? (selectedBusiness.points / selectedBusiness.rewardGoal) * 100
+  : 0;
 
-  const availableSectors = useMemo(() => {
-    return ZONES.filter(
-      (z) => z.country === selectedCountry && z.city === selectedCity
-    );
-  }, [selectedCountry, selectedCity]);
+if (!selectedBusiness) {
+  return <div style={{ color: "#fff", padding: 20 }}>Aucun commerce</div>;
+}
 
-  const selectedZoneMeta = useMemo(() => {
-    return ZONES.find((z) => z.id === selectedZone) || ZONES[0] || null;
-  }, [selectedZone]);
+const client = {
+  id: "client-demo-1",
+  loyaltyId: "CL-1001",
+  name: "Julie",
+  phone: "0600000000",
+  country: selectedBusiness.country,
+  region: selectedBusiness.region,
+  city: selectedBusiness.city,
+  zoneId: selectedBusiness.zoneId,
+  zoneLabel: selectedBusiness.zoneLabel,
+  radiusKm: selectedBusiness.radiusKm,
+};
 
-  const visibleBusinesses = useMemo(() => {
-    return BUSINESSES.filter((b) => b.zoneId === selectedZone);
-  }, [selectedZone]);
-
-  const autoSelectedBusiness = useMemo(() => {
-    if (locationMode !== "auto") return null;
-    if (!geoState.coords) return null;
-    if (nearbyBusinesses.length > 0) return nearbyBusinesses[0];
-    if (businessesWithDistance.length > 0) return businessesWithDistance[0];
-    return null;
-  }, [locationMode, geoState.coords, nearbyBusinesses, businessesWithDistance]);
-
-  useEffect(() => {
-    if (locationMode !== "manual") return;
-
-    if (!availableCountries.includes(selectedCountry)) {
-      const nextCountry = availableCountries[0] || "";
-      setSelectedCountry(nextCountry);
-    }
-  }, [locationMode, availableCountries, selectedCountry]);
-
-  useEffect(() => {
-    if (locationMode !== "manual") return;
-    if (!selectedCountry) return;
-
-    if (!availableCities.includes(selectedCity)) {
-      const nextCity = availableCities[0] || "";
-      setSelectedCity(nextCity);
-    }
-  }, [locationMode, selectedCountry, availableCities, selectedCity]);
-
-  useEffect(() => {
-    if (locationMode !== "manual") return;
-    if (!selectedCountry || !selectedCity) return;
-
-    const sectorExists = availableSectors.some((z) => z.id === selectedSector);
-    if (!sectorExists) {
-      const nextSector = availableSectors[0]?.id || "";
-      setSelectedSector(nextSector);
-    }
-  }, [
-    locationMode,
-    selectedCountry,
-    selectedCity,
-    availableSectors,
-    selectedSector,
-  ]);
-
-  useEffect(() => {
-    if (locationMode !== "manual") return;
-    if (!selectedSector) return;
-
-    if (selectedZone !== selectedSector) {
-      setSelectedZone(selectedSector);
-    }
-  }, [locationMode, selectedSector, selectedZone]);
-
-  useEffect(() => {
-    if (locationMode !== "manual") return;
-    if (!visibleBusinesses.length) return;
-
-    const exists = visibleBusinesses.some((b) => b.id === selectedBusinessId);
-    if (!exists) {
-      setSelectedBusinessId(visibleBusinesses[0].id);
-    }
-  }, [locationMode, visibleBusinesses, selectedBusinessId]);
-
-  useEffect(() => {
-    if (!autoSelectedBusiness || locationMode !== "auto") return;
-
-    if (autoSelectedBusiness.zoneId !== selectedZone) {
-      setSelectedZone(autoSelectedBusiness.zoneId);
-    }
-
-    if (autoSelectedBusiness.id !== selectedBusinessId) {
-      setSelectedBusinessId(autoSelectedBusiness.id);
-    }
-
-    const zoneMeta = ZONES.find((z) => z.id === autoSelectedBusiness.zoneId);
-    if (zoneMeta) {
-      if (zoneMeta.country !== selectedCountry) {
-        setSelectedCountry(zoneMeta.country);
-      }
-      if (zoneMeta.city !== selectedCity) {
-        setSelectedCity(zoneMeta.city);
-      }
-      if (zoneMeta.id !== selectedSector) {
-        setSelectedSector(zoneMeta.id);
-      }
-    }
-  }, [
-    autoSelectedBusiness,
-    locationMode,
-    selectedZone,
-    selectedBusinessId,
-    selectedCountry,
-    selectedCity,
-    selectedSector,
-  ]);
-
-  useEffect(() => {
-    setShowAllOffers(false);
-  }, [selectedBusinessId, selectedZone, offerFilter]);
-
-  const selectedBusiness =
-    BUSINESSES.find((b) => b.id === selectedBusinessId) ||
-    visibleBusinesses[0] ||
-    BUSINESSES[0] ||
-    null;
-
-  const progress = selectedBusiness
-    ? (selectedBusiness.points / selectedBusiness.rewardGoal) * 100
-    : 0;
-
-  if (!selectedBusiness) {
-    return <div style={{ color: "#fff", padding: 20 }}>Aucun commerce</div>;
-  }
-
-  const client = {
-    id: "client-demo-1",
-    loyaltyId: "CL-1001",
-    name: "Julie",
-    phone: "0600000000",
-    country: selectedBusiness.country,
-    region: selectedBusiness.region,
-    city: selectedBusiness.city,
-    zoneId: selectedBusiness.zoneId,
-    zoneLabel: selectedBusiness.zoneLabel,
-    radiusKm: selectedBusiness.radiusKm,
-  };
+  
 
   const cardUrl = `https://zeltyo.netlify.app/card/${client.id}?business=${selectedBusiness.id}&zone=${selectedBusiness.zoneId}`;
 
@@ -822,17 +452,7 @@ if (isLocalhost) {
     0
   );
 
-  const selectedBusinessDistance =
-    geoState.coords &&
-    Number.isFinite(selectedBusiness.lat) &&
-    Number.isFinite(selectedBusiness.lng)
-      ? getDistanceKm(
-          geoState.coords.lat,
-          geoState.coords.lng,
-          selectedBusiness.lat,
-          selectedBusiness.lng
-        )
-      : null;
+
 
   const visibleOfferCards = useMemo(() => {
     const list = filteredOffers.filter((o) => o.id !== featuredOffer?.id);
@@ -1147,113 +767,75 @@ if (isLocalhost) {
               </div>
             )}
 
-            {locationMode === "auto" &&
-              geoState.coords &&
-              businessesWithDistance.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    display: "grid",
-                    gap: 10,
-                  }}
-                >
-                  <div
-                    style={{
-                      color: COLORS.textSoft,
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Commerces proches
-                  </div>
+           {locationMode === "auto" && geoState.coords && (
+  <div
+    style={{
+      marginTop: 4,
+      display: "grid",
+      gap: 10,
+    }}
+  >
+    <div
+      style={{
+        color: COLORS.textSoft,
+        fontSize: 13,
+        fontWeight: 700,
+      }}
+    >
+      Commerce détecté
+    </div>
 
-                  {(nearbyBusinesses.length > 0
-                    ? nearbyBusinesses
-                    : businessesWithDistance.slice(0, 3)
-                  ).map((business) => (
-                    <div
-                      key={business.id}
-                      style={{
-                        padding: 14,
-                        borderRadius: 16,
-                        background:
-                          business.id === selectedBusiness.id
-                            ? "rgba(217,122,50,0.12)"
-                            : COLORS.surfaceSoft,
-                        border:
-                          business.id === selectedBusiness.id
-                            ? `1px solid rgba(217,122,50,0.35)`
-                            : `1px solid ${COLORS.border}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          marginBottom: 8,
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 800 }}>{business.name}</div>
-                          <div
-                            style={{ color: COLORS.textSoft, fontSize: 13 }}
-                          >
-                            {business.city} • {business.zoneLabel}
-                          </div>
-                        </div>
+    <div
+      style={{
+        padding: 14,
+        borderRadius: 16,
+        background: "rgba(217,122,50,0.12)",
+        border: `1px solid rgba(217,122,50,0.35)`,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 800 }}>{selectedBusiness.name}</div>
+          <div style={{ color: COLORS.textSoft, fontSize: 13 }}>
+            {selectedBusiness.city} •{" "}
+            {selectedBusiness.zoneLabel || "Zone non renseignée"}
+          </div>
+        </div>
 
-                        <div
-                          style={{
-                            color: COLORS.copperLight,
-                            fontWeight: 800,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {getDistanceLabel(business.distanceKm)}
-                        </div>
-                      </div>
+        <div
+          style={{
+            color: COLORS.copperLight,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {selectedBusinessDistance !== null
+            ? getDistanceLabel(selectedBusinessDistance)
+            : "Distance non disponible"}
+        </div>
+      </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            const zoneMeta = ZONES.find(
-                              (z) => z.id === business.zoneId
-                            );
-                            setLocationMode("manual");
-                            setSelectedZone(business.zoneId);
-                            setSelectedBusinessId(business.id);
-                            if (zoneMeta) {
-                              setSelectedCountry(zoneMeta.country);
-                              setSelectedCity(zoneMeta.city);
-                              setSelectedSector(zoneMeta.id);
-                            }
-                          }}
-                          style={copperButton()}
-                        >
-                          Choisir
-                        </button>
-
-                        <a
-                          href={business.googleMapsUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ textDecoration: "none" }}
-                        >
-                          <button style={ghostButton()}>Itinéraire</button>
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <a
+          href={selectedBusiness.googleMapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ textDecoration: "none" }}
+        >
+          <button style={ghostButton()}>Itinéraire</button>
+        </a>
+      </div>
+    </div>
+  </div>
+)}
           </div>
         </div>
 
@@ -1680,6 +1262,17 @@ if (isLocalhost) {
                     {offer.description}
                   </div>
 
+                  {offer.ctaUrl && (
+  <div style={{ marginBottom: 14 }}>
+    <button
+      style={copperButton()}
+      onClick={() => window.open(offer.ctaUrl, "_blank")}
+    >
+      {offer.ctaLabel || "Voir l'offre"}
+    </button>
+  </div>
+)}
+
                   <div
                     style={{
                       display: "flex",
@@ -1767,164 +1360,96 @@ if (isLocalhost) {
             boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
           }}
         >
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              color: COLORS.textSoft,
-              marginBottom: 8,
-              fontWeight: 700,
-            }}
-          >
-            Pays
-          </label>
+         <label
+  style={{
+    display: "block",
+    fontSize: 13,
+    color: COLORS.textSoft,
+    marginBottom: 8,
+    fontWeight: 700,
+  }}
+>
+  Pays
+</label>
 
-          <select
-            value={selectedCountry}
-            onChange={(e) => {
-              const nextCountry = e.target.value;
-              const nextCities = [
-                ...new Set(
-                  ZONES.filter((z) => z.country === nextCountry).map(
-                    (z) => z.city
-                  )
-                ),
-              ];
-              const nextCity = nextCities[0] || "";
-              const nextSectorMeta =
-                ZONES.find(
-                  (z) => z.country === nextCountry && z.city === nextCity
-                ) || null;
+<div style={inputStyle()}>
+  {selectedBusiness.country || "Non renseigné"}
+</div>
 
-              setLocationMode("manual");
-              setSelectedCountry(nextCountry);
-              setSelectedCity(nextCity);
-              setSelectedSector(nextSectorMeta?.id || "");
-              setSelectedZone(nextSectorMeta?.id || "");
-              setSelectedBusinessId("");
-            }}
-            style={inputStyle()}
-          >
-            {availableCountries.map((country) => (
-              <option key={country} value={country}>
-                {country}
-              </option>
-            ))}
-          </select>
+<label
+  style={{
+    display: "block",
+    fontSize: 13,
+    color: COLORS.textSoft,
+    marginTop: 14,
+    marginBottom: 8,
+    fontWeight: 700,
+  }}
+>
+  Ville
+</label>
 
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              color: COLORS.textSoft,
-              marginTop: 14,
-              marginBottom: 8,
-              fontWeight: 700,
-            }}
-          >
-            Ville
-          </label>
+<div style={inputStyle()}>
+  {selectedBusiness.city || "Non renseigné"}
+</div>
 
-          <select
-            value={selectedCity}
-            onChange={(e) => {
-              const nextCity = e.target.value;
-              const nextSectorMeta =
-                ZONES.find(
-                  (z) => z.country === selectedCountry && z.city === nextCity
-                ) || null;
+<label
+  style={{
+    display: "block",
+    fontSize: 13,
+    color: COLORS.textSoft,
+    marginTop: 14,
+    marginBottom: 8,
+    fontWeight: 700,
+  }}
+>
+  Secteur
+</label>
 
-              setLocationMode("manual");
-              setSelectedCity(nextCity);
-              setSelectedSector(nextSectorMeta?.id || "");
-              setSelectedZone(nextSectorMeta?.id || "");
-              setSelectedBusinessId("");
-            }}
-            style={inputStyle()}
-          >
-            {availableCities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
+<div style={inputStyle()}>
+  {selectedBusiness.zoneLabel || "Zone non renseignée"}
+</div>
 
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              color: COLORS.textSoft,
-              marginTop: 14,
-              marginBottom: 8,
-              fontWeight: 700,
-            }}
-          >
-            Secteur
-          </label>
-
-          <select
-            value={selectedSector}
-            onChange={(e) => {
-              setLocationMode("manual");
-              setSelectedSector(e.target.value);
-              setSelectedZone(e.target.value);
-              setSelectedBusinessId("");
-            }}
-            style={inputStyle()}
-          >
-            {availableSectors.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.label}
-              </option>
-            ))}
-          </select>
-
-          {selectedZoneMeta && (
-            <div
-              style={{
-                marginTop: 12,
-                padding: 12,
-                borderRadius: 14,
-                background: COLORS.surfaceSoft,
-                border: `1px solid ${COLORS.border}`,
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <ZoneLine label="Pays" value={selectedZoneMeta.country} />
-              <ZoneLine label="Ville" value={selectedZoneMeta.city} />
-              <ZoneLine label="Secteur" value={selectedZoneMeta.label} />
-              <ZoneLine label="Rayon" value={`${selectedZoneMeta.radiusKm} km`} />
-            </div>
-          )}
-
-          <label
-            style={{
-              display: "block",
-              fontSize: 13,
-              color: COLORS.textSoft,
-              marginTop: 14,
-              marginBottom: 8,
-              fontWeight: 700,
-            }}
-          >
-            Commerce
-          </label>
-
-          <select
-            value={selectedBusiness.id}
-            onChange={(e) => {
-              setLocationMode("manual");
-              setSelectedBusinessId(e.target.value);
-            }}
-            style={inputStyle()}
-          >
-            {visibleBusinesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+<div
+  style={{
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 14,
+    background: COLORS.surfaceSoft,
+    border: `1px solid ${COLORS.border}`,
+    display: "grid",
+    gap: 6,
+  }}
+>
+  <ZoneLine
+    label="Pays"
+    value={selectedBusiness.country || "Non renseigné"}
+  />
+  <ZoneLine
+    label="Ville"
+    value={selectedBusiness.city || "Non renseigné"}
+  />
+  <ZoneLine
+    label="Secteur"
+    value={selectedBusiness.zoneLabel || "Zone non renseignée"}
+  />
+  <ZoneLine
+    label="Rayon"
+    value={`${selectedBusiness.radiusKm || 0} km`}
+  />
+</div>
+          <div
+  style={{
+    padding: "14px",
+    borderRadius: "14px",
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.surfaceSoft,
+    color: COLORS.text,
+    fontWeight: 700,
+  }}
+>
+  {selectedBusiness.name}
+</div>
         </div>
 
         <div
@@ -2102,13 +1627,13 @@ if (isLocalhost) {
               </div>
 
               <div style={{ color: COLORS.textSoft, lineHeight: 1.6 }}>
-                {selectedBusiness.city} • {selectedBusiness.region} •{" "}
-                {selectedBusiness.country}
+                {selectedBusiness.city} • {selectedBusiness.country}
               </div>
 
               <div style={{ color: COLORS.textSoft, lineHeight: 1.6 }}>
-                {selectedZoneMeta?.label} • Rayon {selectedBusiness.radiusKm} km
-              </div>
+  {selectedBusiness.zoneLabel || "Zone non renseignée"} • Rayon{" "}
+  {selectedBusiness.radiusKm} km
+</div>
 
               {selectedBusinessDistance != null ? (
                 <div style={{ color: COLORS.textSoft, lineHeight: 1.6 }}>
@@ -2424,17 +1949,21 @@ if (isLocalhost) {
             {selectedBusiness.address}
           </p>
 
-          <p style={{ color: COLORS.textSoft, marginTop: 0 }}>
-            {selectedBusiness.city} • {selectedBusiness.region} •{" "}
-            {selectedBusiness.country} • {selectedZoneMeta?.label} • Rayon{" "}
-            {selectedBusiness.radiusKm} km
-          </p>
+         <p style={{ color: COLORS.textSoft, marginTop: 0 }}>
+  {selectedBusiness.city} • {selectedBusiness.country} •{" "}
+  {selectedBusiness.zoneLabel || "Zone non renseignée"} • Rayon{" "}
+  {selectedBusiness.radiusKm} km
+</p>
 
-          {selectedBusinessDistance != null ? (
-            <p style={{ color: COLORS.textSoft, marginTop: 0 }}>
-              Distance estimée depuis vous • {formatDistance(selectedBusinessDistance)}
-            </p>
-          ) : null}
+          {selectedBusinessDistance !== null ? (
+  <p style={{ color: COLORS.textSoft, marginTop: 0 }}>
+    Distance estimée depuis vous • {formatDistance(selectedBusinessDistance)}
+  </p>
+) : (
+  <p style={{ color: COLORS.textSoft, marginTop: 0 }}>
+    Distance non disponible
+  </p>
+)}
 
           <iframe
             src={`https://www.google.com/maps?q=${selectedBusiness.lat},${selectedBusiness.lng}&z=15&output=embed`}
