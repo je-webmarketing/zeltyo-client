@@ -362,8 +362,8 @@ if (!selectedBusiness) {
 const client = {
   id: "client-demo-1",
   loyaltyId: "CL-1001",
-  name: "Julie",
-  phone: "0600000000",
+  name: merchantContact?.ownerName || merchantContact?.shopName || "Client",
+  phone: merchantContact?.phone || "",
   country: selectedBusiness.country,
   region: selectedBusiness.region,
   city: selectedBusiness.city,
