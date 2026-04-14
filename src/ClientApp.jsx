@@ -103,6 +103,7 @@ const [locationMode, setLocationMode] = useState("auto");
   const [merchantContact, setMerchantContact] = useState(null);
 const [programSettings, setProgramSettings] = useState(null);
 const [merchantPromotions, setMerchantPromotions] = useState([]);
+const [clientData, setClientData] = useState(null);
 
 useEffect(() => {
   try {
@@ -230,23 +231,52 @@ useEffect(() => {
   setShowAllOffers(false);
 }, [offerFilter, merchantPromotions]);
 
- const dynamicBusiness = useMemo(() => {
+const dynamicBusiness = useMemo(() => {
+  if (!merchantContact && !programSettings) return null;
+
   const activePromotions = merchantPromotions.filter(
     (p) => p.status === "Active"
   );
 
+  const name = merchantContact?.shopName || "Mon Commerce";
+  const address = merchantContact?.address || "";
+  const city =
+    merchantContact?.city ||
+    programSettings?.locationSettings?.city ||
+    "";
+  const country =
+    merchantContact?.country ||
+    programSettings?.locationSettings?.country ||
+    "";
+
+  const lat = programSettings?.locationSettings?.latitude
+    ? Number(programSettings.locationSettings.latitude)
+    : null;
+
+  const lng = programSettings?.locationSettings?.longitude
+    ? Number(programSettings.locationSettings.longitude)
+    : null;
+
+  const hasCoordinates = lat && lng;
+
+  const businessQuery = encodeURIComponent(
+    [name, address, city, country].filter(Boolean).join(", ")
+  );
+
+  // ✅ MAP URL (fix)
+  const googleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps?q=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${businessQuery}`;
+
+  // ✅ AVIS GOOGLE (fix réel)
+  const reviewUrl = `https://www.google.com/search?q=${businessQuery}`;
+
   return {
     id: "BUS-DYNAMIC",
-    name: merchantContact?.shopName || "Mon Commerce",
-    country:
-      merchantContact?.country ||
-      programSettings?.locationSettings?.country ||
-      "",
-    region: "",
-    city:
-      merchantContact?.city ||
-      programSettings?.locationSettings?.city ||
-      "",
+    name,
+    address,
+    city,
+    country,
     zoneId: "dynamic-zone",
     zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
     radiusKm: Number(programSettings?.locationSettings?.radiusKm || 0),
@@ -257,19 +287,12 @@ useEffect(() => {
     promo: activePromotions[0]?.title || "Aucune promotion active",
     color: programSettings?.primaryColor || "#D4AF37",
     description: "Retrouvez vos avantages fidélité et vos offres en cours.",
-    address: merchantContact?.address || "",
-    lat: programSettings?.locationSettings?.latitude
-      ? Number(programSettings.locationSettings.latitude)
-      : null,
-    lng: programSettings?.locationSettings?.longitude
-      ? Number(programSettings.locationSettings.longitude)
-      : null,
-    googleMapsUrl:
-      programSettings?.locationSettings?.latitude &&
-      programSettings?.locationSettings?.longitude
-        ? `https://www.google.com/maps?q=${programSettings.locationSettings.latitude},${programSettings.locationSettings.longitude}`
-        : merchantContact?.website || "#",
-    reviewUrl: merchantContact?.reviewUrl || "",
+    lat,
+    lng,
+    hasCoordinates,
+    googleMapsUrl,
+    reviewUrl,
+
     offers: activePromotions.map((promo, index) => ({
       id: promo.id || `PROMO-${index + 1}`,
       title: promo.title,
@@ -281,26 +304,17 @@ useEffect(() => {
       ctaLabel: promo.ctaLabel || "",
       ctaUrl: promo.ctaUrl || "",
       businessId: "BUS-DYNAMIC",
-      businessName: merchantContact?.shopName || "Mon Commerce",
-      city:
-        merchantContact?.city ||
-        programSettings?.locationSettings?.city ||
-        "",
+      businessName: name,
+      city,
       zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
-      googleMapsUrl:
-        programSettings?.locationSettings?.latitude &&
-        programSettings?.locationSettings?.longitude
-          ? `https://www.google.com/maps?q=${programSettings.locationSettings.latitude},${programSettings.locationSettings.longitude}`
-          : merchantContact?.website || "#",
+      googleMapsUrl,
       distanceKm:
-        geoState.coords &&
-        programSettings?.locationSettings?.latitude &&
-        programSettings?.locationSettings?.longitude
+        geoState.coords && lat && lng
           ? getDistanceKm(
               geoState.coords.lat,
               geoState.coords.lng,
-              Number(programSettings.locationSettings.latitude),
-              Number(programSettings.locationSettings.longitude)
+              lat,
+              lng
             )
           : Infinity,
       isNearby: true,
@@ -308,7 +322,17 @@ useEffect(() => {
   };
 }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
 
-const selectedBusiness = dynamicBusiness;
+const selectedBusiness = dynamicBusiness || {
+  offers: [],
+};
+if (!selectedBusiness) {
+  return (
+    <div style={{ color: "#fff", padding: 20 }}>
+      Chargement...
+    </div>
+  );
+}
+
 
 const selectedBusinessDistance =
   geoState.coords &&
@@ -322,7 +346,7 @@ const selectedBusinessDistance =
       )
     : null;
 
-const nearbyOffers = selectedBusiness.offers || [];
+const nearbyOffers = selectedBusiness?.offers || [];
 
 const filteredOffers = useMemo(() => {
   if (offerFilter === "all") return nearbyOffers;
@@ -359,20 +383,63 @@ if (!selectedBusiness) {
   return <div style={{ color: "#fff", padding: 20 }}>Aucun commerce</div>;
 }
 
-const client = {
-  id: "client-demo-1",
-  loyaltyId: "CL-1001",
-  name: merchantContact?.ownerName || merchantContact?.shopName || "Client",
-  phone: merchantContact?.phone || "",
-  country: selectedBusiness.country,
-  region: selectedBusiness.region,
-  city: selectedBusiness.city,
-  zoneId: selectedBusiness.zoneId,
-  zoneLabel: selectedBusiness.zoneLabel,
-  radiusKm: selectedBusiness.radiusKm,
-};
+const client = clientData
+  ? {
+      id: clientData.id,
+      loyaltyId: clientData.loyaltyId || clientData.id,
+      name: clientData.name || "Client",
+      phone: clientData.phone || "",
+      country: selectedBusiness.country,
+      region: selectedBusiness.region,
+      city: selectedBusiness.city,
+      zoneId: selectedBusiness.zoneId,
+      zoneLabel: selectedBusiness.zoneLabel,
+      radiusKm: selectedBusiness.radiusKm,
+    }
+  : {
+      id: "client-demo-1",
+      loyaltyId: "CL-1001",
+      name: "Client",
+      phone: "",
+      country: selectedBusiness.country,
+      region: selectedBusiness.region,
+      city: selectedBusiness.city,
+      zoneId: selectedBusiness.zoneId,
+      zoneLabel: selectedBusiness.zoneLabel,
+      radiusKm: selectedBusiness.radiusKm,
+    };
 
-  
+
+
+ useEffect(() => {
+  async function loadClient() {
+    try {
+      const rawAuth = localStorage.getItem("zeltyo_merchant_auth");
+      if (!rawAuth) return;
+
+      const auth = JSON.parse(rawAuth);
+      const businessId = auth?.user?.businessId;
+      if (!businessId) return;
+
+      const response = await fetch(
+        buildApiUrl(`/clients/by-business/${businessId}`)
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        setClientData(data[0]);
+      }
+    } catch (error) {
+      console.error("Erreur chargement client :", error);
+    }
+  }
+
+  loadClient();
+}, []);
+
 
   const cardUrl = `https://zeltyo.netlify.app/card/${client.id}?business=${selectedBusiness.id}&zone=${selectedBusiness.zoneId}`;
 
@@ -526,9 +593,9 @@ if (isLocalhost) {
             <a href="#commerce" style={{ textDecoration: "none" }}>
               <button style={ghostButtonSmall()}>Commerce</button>
             </a>
-            <a href="#avis" style={{ textDecoration: "none" }}>
-              <button style={ghostButtonSmall()}>Avis</button>
-            </a>
+            <a href={selectedBusiness.reviewUrl} target="_blank">
+  <button style={reviewButton()}>⭐ Voir les avis</button>
+</a>
             <button
               onClick={() =>
                 alert("Mes cartes arrive bientôt ✅\nVous pourrez retrouver toutes vos cartes fidélité ici.")
@@ -1965,29 +2032,63 @@ if (isLocalhost) {
   </p>
 )}
 
-          <iframe
-            src={`https://www.google.com/maps?q=${selectedBusiness.lat},${selectedBusiness.lng}&z=15&output=embed`}
-            width="100%"
-            height="220"
-            style={{
-              border: 0,
-              borderRadius: 16,
-              marginTop: 12,
-            }}
-            allowFullScreen=""
-            loading="lazy"
-            title={`map-${selectedBusiness.id}`}
-          />
+{selectedBusiness.hasCoordinates ? (
+  <iframe
+    src={`https://www.google.com/maps?q=${selectedBusiness.lat},${selectedBusiness.lng}&z=15&output=embed`}
+    width="100%"
+    height="220"
+    style={{
+      border: 0,
+      borderRadius: 16,
+      marginTop: 12,
+    }}
+    loading="lazy"
+    title={`map-${selectedBusiness.id}`}
+  />
+) : (
+  <iframe
+    src={`https://www.google.com/maps?q=${encodeURIComponent(
+      selectedBusiness.address
+    )}&output=embed`}
+    width="100%"
+    height="220"
+    style={{
+      border: 0,
+      borderRadius: 16,
+      marginTop: 12,
+    }}
+    loading="lazy"
+    title={`map-${selectedBusiness.id}`}
+  />
+)}
 
-          <div style={{ marginTop: 14 }}>
-            <a
-              href={selectedBusiness.googleMapsUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <button style={copperButton()}>Voir sur Google Maps</button>
-            </a>
-          </div>
+       <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+
+  {/* 🔥 GOOGLE MAPS */}
+  <a
+    href={selectedBusiness.googleMapsUrl}
+    target="_blank"
+    rel="noreferrer"
+    style={{ textDecoration: "none" }}
+  >
+    <button style={copperButton()}>
+      📍 Voir sur Google Maps
+    </button>
+  </a>
+
+  {/* 🔥 AVIS GOOGLE */}
+  <a
+    href={selectedBusiness.reviewUrl}
+    target="_blank"
+    rel="noreferrer"
+    style={{ textDecoration: "none" }}
+  >
+    <button style={reviewButton()}>
+      ⭐ Laisser un avis
+    </button>
+  </a>
+
+</div>
         </div>
 
         <div
@@ -2016,13 +2117,19 @@ if (isLocalhost) {
             à gagner en visibilité.
           </p>
 
-          <a
-            href={selectedBusiness.reviewUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <button style={reviewButton()}>⭐ Laisser un avis</button>
-          </a>
+         {selectedBusiness.reviewUrl ? (
+  <a
+    href={selectedBusiness.reviewUrl}
+    target="_blank"
+    rel="noreferrer"
+  >
+    <button style={reviewButton()}>⭐ Laisser un avis</button>
+  </a>
+) : (
+  <button style={{ ...ghostButton(), cursor: "not-allowed", opacity: 0.6 }}>
+    Lien d’avis indisponible
+  </button>
+)}
         </div>
       </div>
     </div>
