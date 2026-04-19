@@ -5,7 +5,9 @@ const clientsCollection = db.collection("clients");
 const FALLBACK_CLIENTS = [
   {
     id: "client-1",
+    loyaltyId: "ZEL-client-1",
     name: "Client Test",
+    email: "client@test.com",
     phone: "0600000000",
     subscriptionId: "a67b1b72-bc4c-431b-a3b8-9bf9d79d3079",
     points: 5,
@@ -112,6 +114,8 @@ export async function upsertClient(clientData) {
     client = {
       ...existing,
       ...clientData,
+      email: clientData.email ?? existing.email ?? "",
+      loyaltyId: clientData.loyaltyId ?? existing.loyaltyId ?? existing.id,
       updatedAt: now,
     };
   } else {
@@ -120,9 +124,14 @@ export async function upsertClient(clientData) {
       clientData.phone ||
       `client-${Math.random().toString(36).slice(2, 10)}`;
 
+    const newLoyaltyId =
+      clientData.loyaltyId || `ZEL-${Math.random().toString(36).slice(2, 10)}`;
+
     client = {
       id: newId,
+      loyaltyId: newLoyaltyId,
       name: clientData.name || "",
+      email: clientData.email || "",
       phone: clientData.phone || "",
       subscriptionId: clientData.subscriptionId || "",
       points: Number(clientData.points || 0),

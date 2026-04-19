@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import {
   getAllClients,
   upsertClient,
@@ -28,8 +29,89 @@ router.get("/__debug", async (req, res) => {
   return res.json({
     ok: true,
     message: "clients router OK",
-    routes: ["/", "/register-subscription", "/segments", "/visit"],
+    routes: [
+      "/",
+      "/by-loyalty/:value",
+      "/register-subscription",
+      "/segments",
+      "/visit",
+      "/relaunch",
+    ],
   });
+});
+
+router.get("/by-loyalty/:value", async (req, res) => {
+  try {
+    const { value } = req.params;
+    const clients = await getAllClients();
+
+    const client = clients.find(
+      (c) => c.loyaltyId === value || c.id === value
+    );
+
+    if (!client) {
+      return res.status(404).json({
+        ok: false,
+        error: "Client introuvable",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      client,
+    });
+  } catch (error) {
+    console.error("Erreur GET /clients/by-loyalty/:value :", error);
+    return res.status(500).json({
+      ok: false,
+      error: "Erreur récupération client",
+    });
+  }
+});
+
+router.post("/", async (req, res) => {
+  try {
+    const { id, loyaltyId, name, email, phone } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        ok: false,
+        error: "name obligatoire",
+      });
+    }
+
+    const clientId = id || crypto.randomUUID();
+    const clientLoyaltyId = loyaltyId || `CL-${Date.now()}`;
+
+    const clients = await upsertClient({
+      id: clientId,
+      loyaltyId: clientLoyaltyId,
+      name,
+      email: email || "",
+      phone: phone || "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const createdClient = clients.find((c) => c.id === clientId);
+
+    return res.status(201).json({
+      ok: true,
+      client: {
+        id: createdClient?.id || clientId,
+        loyaltyId: createdClient?.loyaltyId || clientLoyaltyId,
+        name: createdClient?.name || name,
+        email: createdClient?.email || email || "",
+        phone: createdClient?.phone || phone || "",
+      },
+    });
+  } catch (error) {
+    console.error("Erreur POST /clients :", error);
+    return res.status(500).json({
+      ok: false,
+      error: "Erreur création client",
+    });
+  }
 });
 
 router.post("/register-subscription", async (req, res) => {
@@ -127,11 +209,14 @@ router.post("/visit", async (req, res) => {
         updatedClient.points >= (updatedClient.rewardGoal ?? 10) &&
         !updatedClient.rewardNotified
       ) {
-        message = "Votre récompense est prête 🎁 Présentez-vous pour en profiter.";
+        message =
+          "Votre récompense est prête 🎁 Présentez-vous pour en profiter.";
         updatedClient.rewardNotified = true;
 
         const allClients = await getAllClients();
-        const updatedIndex = allClients.findIndex((c) => c.id === updatedClient.id);
+        const updatedIndex = allClients.findIndex(
+          (c) => c.id === updatedClient.id
+        );
 
         if (updatedIndex !== -1) {
           allClients[updatedIndex] = {
@@ -142,19 +227,25 @@ router.post("/visit", async (req, res) => {
           await saveAllClients(allClients);
         }
       } else if (updatedClient.segment === "loyal") {
-        message = "Merci pour votre fidélité 🙌 Encore quelques visites et une surprise vous attend.";
+        message =
+          "Merci pour votre fidélité 🙌 Encore quelques visites et une surprise vous attend.";
       } else if (updatedClient.segment === "vip") {
-        message = "Vous faites partie de nos meilleurs clients ⭐ Un bonus VIP vous attend.";
+        message =
+          "Vous faites partie de nos meilleurs clients ⭐ Un bonus VIP vous attend.";
       }
 
       if (message) {
-        await sendNotificationToSubscription(updatedClient.subscriptionId, message);
+        await sendNotificationToSubscription(
+          updatedClient.subscriptionId,
+          message
+        );
       }
     }
 
     return res.json({
       ok: true,
       message: "Visite enregistrée",
+      client: updatedClient,
       clients: await getAllClients(),
     });
   } catch (error) {

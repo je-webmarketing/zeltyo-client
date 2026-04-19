@@ -411,26 +411,20 @@ const client = clientData
 
 
 
- useEffect(() => {
+useEffect(() => {
   async function loadClient() {
     try {
-      const rawAuth = localStorage.getItem("zeltyo_merchant_auth");
-      if (!rawAuth) return;
+      const response = await fetch(buildApiUrl("/clients"));
 
-      const auth = JSON.parse(rawAuth);
-      const businessId = auth?.user?.businessId;
-      if (!businessId) return;
-
-      const response = await fetch(
-        buildApiUrl(`/clients/by-business/${businessId}`)
-      );
-
-      if (!response.ok) return;
+      if (!response.ok) {
+        console.error("Erreur API clients :", response.status);
+        return;
+      }
 
       const data = await response.json();
 
-      if (Array.isArray(data) && data.length > 0) {
-        setClientData(data[0]);
+      if (data?.ok && Array.isArray(data.clients) && data.clients.length > 0) {
+        setClientData(data.clients[0]);
       }
     } catch (error) {
       console.error("Erreur chargement client :", error);
@@ -440,8 +434,8 @@ const client = clientData
   loadClient();
 }, []);
 
-
-  const cardUrl = `https://zeltyo.netlify.app/card/${client.id}?business=${selectedBusiness.id}&zone=${selectedBusiness.zoneId}`;
+  const cardUrl = `https://zeltyo-clients.netlify.app/card/${client.loyaltyId || client.id}`;
+  console.log("cardUrl =", cardUrl);
 
   const saveClientSubscription = async (newSubscriptionId) => {
     try {
@@ -472,6 +466,14 @@ const client = clientData
       console.error("Erreur sauvegarde client :", error);
     }
   };
+
+  const isProd = window.location.origin.includes("zeltyo-clients.netlify.app");
+
+if (isProd) {
+  // OneSignal.init(...)
+} else {
+  console.log("OneSignal désactivé hors production");
+}
 
   const handleEnableNotifications = async () => {
     try {
@@ -626,27 +628,27 @@ if (isLocalhost) {
             }}
           >
             <div
-              style={{
-                padding: 10,
-                borderRadius: 22,
-                background: "linear-gradient(135deg, #FFD700, #B8962E)",
-                boxShadow: "0 0 20px rgba(212,175,55,0.35)",
-              }}
-            >
-              <img
-                src="/icon-512.png"
-                alt="Zeltyo"
-                style={{
-                  width: 84,
-                  height: 84,
-                  borderRadius: 18,
-                  background: "#000",
-                  padding: 12,
-                  objectFit: "contain",
-                  display: "block",
-                }}
-              />
-            </div>
+  style={{
+    padding: 0,
+    borderRadius: 22,
+    background: "transparent",
+    boxShadow: "none",
+  }}
+>
+  <img
+    src="/icon-512.png"
+    alt="Zeltyo"
+    style={{
+      width: 145,
+height: 145,
+      borderRadius: 22,
+      background: "transparent",
+      padding: 0,
+      objectFit: "contain",
+      display: "block",
+    }}
+  />
+</div>
 
             <div>
               <div
