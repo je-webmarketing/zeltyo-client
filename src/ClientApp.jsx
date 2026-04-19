@@ -104,6 +104,9 @@ const [locationMode, setLocationMode] = useState("auto");
 const [programSettings, setProgramSettings] = useState(null);
 const [merchantPromotions, setMerchantPromotions] = useState([]);
 const [clientData, setClientData] = useState(null);
+const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [phone, setPhone] = useState("");
 
 useEffect(() => {
   try {
@@ -193,6 +196,13 @@ useEffect(() => {
   let isMounted = true;
 
   async function bootOneSignal() {
+    const isProd = window.location.origin.includes("zeltyo-clients.netlify.app");
+
+    if (!isProd) {
+      console.log("OneSignal désactivé hors production");
+      return;
+    }
+
     try {
       await initOneSignal();
       const status = await getOneSignalStatus();
@@ -203,11 +213,6 @@ useEffect(() => {
       setPermission(Boolean(status.permission));
       setOptedIn(Boolean(status.optedIn));
       setSubscriptionId(status.subscriptionId || null);
-
-      console.log("Permission OneSignal :", status.permission);
-      console.log("OneSignal optedIn :", status.optedIn);
-      console.log("OneSignal subscriptionId :", status.subscriptionId);
-      console.log("OneSignal token :", status.token);
     } catch (error) {
       console.error("Erreur init OneSignal :", error);
 
@@ -389,6 +394,7 @@ const client = clientData
       loyaltyId: clientData.loyaltyId || clientData.id,
       name: clientData.name || "Client",
       phone: clientData.phone || "",
+      email: clientData.email || "",
       country: selectedBusiness.country,
       region: selectedBusiness.region,
       city: selectedBusiness.city,
@@ -401,6 +407,7 @@ const client = clientData
       loyaltyId: "CL-1001",
       name: "Client",
       phone: "",
+      email: "",
       country: selectedBusiness.country,
       region: selectedBusiness.region,
       city: selectedBusiness.city,
@@ -409,30 +416,45 @@ const client = clientData
       radiusKm: selectedBusiness.radiusKm,
     };
 
+const createClient = async () => {
+  try {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim();
 
-
-useEffect(() => {
-  async function loadClient() {
-    try {
-      const response = await fetch(buildApiUrl("/clients"));
-
-      if (!response.ok) {
-        console.error("Erreur API clients :", response.status);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data?.ok && Array.isArray(data.clients) && data.clients.length > 0) {
-        setClientData(data.clients[0]);
-      }
-    } catch (error) {
-      console.error("Erreur chargement client :", error);
+    if (!cleanName || (!cleanEmail && !cleanPhone)) {
+      alert("Merci de renseigner un nom et au moins un email ou un téléphone.");
+      return;
     }
-  }
 
-  loadClient();
-}, []);
+    const response = await fetch(buildApiUrl("/clients"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Erreur création client");
+    }
+
+    setClientData(data.client);
+
+    if (data.created) {
+      alert("Client créé avec succès");
+    } else {
+      alert("Client déjà existant, fiche mise à jour");
+    }
+  } catch (error) {
+    console.error("Erreur création client :", error);
+    alert(error.message || "Erreur création client");
+  }
+};
 
   const cardUrl = `https://zeltyo-clients.netlify.app/card/${client.loyaltyId || client.id}`;
   console.log("cardUrl =", cardUrl);
@@ -466,14 +488,6 @@ useEffect(() => {
       console.error("Erreur sauvegarde client :", error);
     }
   };
-
-  const isProd = window.location.origin.includes("zeltyo-clients.netlify.app");
-
-if (isProd) {
-  // OneSignal.init(...)
-} else {
-  console.log("OneSignal désactivé hors production");
-}
 
   const handleEnableNotifications = async () => {
     try {
@@ -939,9 +953,14 @@ height: 145,
               Offres autour de moi
             </h3>
 
-            <a href="#commerce" style={{ textDecoration: "none" }}>
-              <button style={ghostButtonSmall()}>Voir le commerce</button>
-            </a>
+          <a
+  href="#commerce"
+  style={{ textDecoration: "none" }}
+>
+  <button style={copperButton()}>
+    Voir le commerce
+  </button>
+</a>
           </div>
 
           {featuredOffer ? (
@@ -1520,6 +1539,58 @@ height: 145,
   {selectedBusiness.name}
 </div>
         </div>
+
+        <div
+  style={{
+    background: COLORS.surface,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 18,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: 14,
+      color: COLORS.goldLight,
+      fontSize: 22,
+    }}
+  >
+    Créer ma carte fidélité
+  </h3>
+
+  <div style={{ display: "grid", gap: 12 }}>
+    <input
+      type="text"
+      placeholder="Nom"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      style={inputStyle()}
+    />
+
+    <input
+      type="email"
+      placeholder="Email"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      style={inputStyle()}
+    />
+
+    <input
+      type="text"
+      placeholder="Téléphone"
+      value={phone}
+      onChange={(e) => setPhone(e.target.value)}
+      style={inputStyle()}
+    />
+
+    <button onClick={createClient} style={copperButton()}>
+      Créer une carte fidélité
+    </button>
+  </div>
+</div>
 
         <div
           id="carte"

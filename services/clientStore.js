@@ -97,16 +97,26 @@ export async function saveAllClients(clients) {
 
 export async function upsertClient(clientData) {
   const clients = await getAllClients();
-
-  const existing = clients.find(
-    (c) =>
-      c.id === clientData.id ||
-      (clientData.phone && c.phone === clientData.phone) ||
-      (clientData.subscriptionId &&
-        c.subscriptionId === clientData.subscriptionId)
-  );
-
   const now = new Date().toISOString();
+
+  const normalizedPhone = String(clientData.phone || "").trim();
+  const normalizedEmail = String(clientData.email || "").trim().toLowerCase();
+
+  const existing = clients.find((c) => {
+    const cPhone = String(c.phone || "").trim();
+    const cEmail = String(c.email || "").trim().toLowerCase();
+
+    if (clientData.id && c.id === clientData.id) return true;
+    if (normalizedPhone && cPhone === normalizedPhone) return true;
+    if (normalizedEmail && cEmail === normalizedEmail) return true;
+    if (
+      clientData.subscriptionId &&
+      c.subscriptionId === clientData.subscriptionId
+    ) {
+      return true;
+    }
+    return false;
+  });
 
   let client;
 
@@ -114,25 +124,26 @@ export async function upsertClient(clientData) {
     client = {
       ...existing,
       ...clientData,
-      email: clientData.email ?? existing.email ?? "",
+      phone: normalizedPhone || existing.phone || "",
+      email: normalizedEmail || existing.email || "",
       loyaltyId: clientData.loyaltyId ?? existing.loyaltyId ?? existing.id,
       updatedAt: now,
     };
   } else {
     const newId =
       clientData.id ||
-      clientData.phone ||
+      normalizedPhone ||
       `client-${Math.random().toString(36).slice(2, 10)}`;
 
     const newLoyaltyId =
-      clientData.loyaltyId || `ZEL-${Math.random().toString(36).slice(2, 10)}`;
+      clientData.loyaltyId || `CL-${Math.random().toString(36).slice(2, 10)}`;
 
     client = {
       id: newId,
       loyaltyId: newLoyaltyId,
-      name: clientData.name || "",
-      email: clientData.email || "",
-      phone: clientData.phone || "",
+      name: String(clientData.name || "").trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
       subscriptionId: clientData.subscriptionId || "",
       points: Number(clientData.points || 0),
       rewardGoal: Number(clientData.rewardGoal || 10),
@@ -148,13 +159,12 @@ export async function upsertClient(clientData) {
 
   try {
     await clientsCollection.doc(client.id).set(client, { merge: true });
-    return await getAllClients();
+    return client;
   } catch (error) {
     console.error("upsertClient Firestore error:", error?.message || error);
-    return [...clients.filter((c) => c.id !== client.id), client];
+    return client;
   }
 }
-
 export async function refreshClientSegments() {
   const clients = await getAllClients();
 

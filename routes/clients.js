@@ -10,6 +10,8 @@ import { sendNotificationToSubscription } from "../services/onesignal.js";
 
 const router = express.Router();
 
+console.log("✅ VERSION CLIENTS ROUTER V3");
+
 console.log("✅ routes/clients.js chargé");
 
 router.get("/", async (req, res) => {
@@ -73,36 +75,51 @@ router.post("/", async (req, res) => {
   try {
     const { id, loyaltyId, name, email, phone } = req.body;
 
-    if (!name) {
+    if (!name || (!phone && !email)) {
       return res.status(400).json({
         ok: false,
-        error: "name obligatoire",
+        error: "name + phone ou email obligatoire",
       });
     }
 
-    const clientId = id || crypto.randomUUID();
-    const clientLoyaltyId = loyaltyId || `CL-${Date.now()}`;
+    const clientsBefore = await getAllClients();
 
-    const clients = await upsertClient({
-      id: clientId,
-      loyaltyId: clientLoyaltyId,
+    const normalizedPhone = String(phone || "").trim();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    const existingClient = clientsBefore.find((c) => {
+      const cPhone = String(c.phone || "").trim();
+      const cEmail = String(c.email || "").trim().toLowerCase();
+
+      return (
+        (id && c.id === id) ||
+        (normalizedPhone && cPhone === normalizedPhone) ||
+        (normalizedEmail && cEmail === normalizedEmail)
+      );
+    });
+
+    const savedClient = await upsertClient({
+      id: existingClient?.id || id || crypto.randomUUID(),
+      loyaltyId: existingClient?.loyaltyId || loyaltyId || `CL-${Date.now()}`,
       name,
-      email: email || "",
-      phone: phone || "",
-      createdAt: new Date().toISOString(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      createdAt: existingClient?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    const createdClient = clients.find((c) => c.id === clientId);
-
-    return res.status(201).json({
+    return res.status(existingClient ? 200 : 201).json({
       ok: true,
+      created: !existingClient,
+      message: existingClient
+        ? "Client existant mis à jour"
+        : "Client créé",
       client: {
-        id: createdClient?.id || clientId,
-        loyaltyId: createdClient?.loyaltyId || clientLoyaltyId,
-        name: createdClient?.name || name,
-        email: createdClient?.email || email || "",
-        phone: createdClient?.phone || phone || "",
+        id: savedClient.id,
+        loyaltyId: savedClient.loyaltyId,
+        name: savedClient.name,
+        email: savedClient.email,
+        phone: savedClient.phone,
       },
     });
   } catch (error) {
