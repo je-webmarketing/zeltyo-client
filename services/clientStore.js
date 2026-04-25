@@ -106,16 +106,12 @@ export async function upsertClient(clientData) {
     const cPhone = String(c.phone || "").trim();
     const cEmail = String(c.email || "").trim().toLowerCase();
 
-    if (clientData.id && c.id === clientData.id) return true;
-    if (normalizedPhone && cPhone === normalizedPhone) return true;
-    if (normalizedEmail && cEmail === normalizedEmail) return true;
-    if (
-      clientData.subscriptionId &&
-      c.subscriptionId === clientData.subscriptionId
-    ) {
-      return true;
-    }
-    return false;
+    return (
+      (clientData.id && c.id === clientData.id) ||
+      (normalizedPhone && cPhone === normalizedPhone) ||
+      (normalizedEmail && cEmail === normalizedEmail) ||
+      (clientData.subscriptionId && c.subscriptionId === clientData.subscriptionId)
+    );
   });
 
   let client;
@@ -157,14 +153,10 @@ export async function upsertClient(clientData) {
     };
   }
 
-  try {
-    await clientsCollection.doc(client.id).set(client, { merge: true });
-    return client;
-  } catch (error) {
-    console.error("upsertClient Firestore error:", error?.message || error);
-    return client;
-  }
+  await clientsCollection.doc(client.id).set(client, { merge: true });
+  return client;
 }
+
 export async function refreshClientSegments() {
   const clients = await getAllClients();
 

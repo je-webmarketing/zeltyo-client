@@ -6,6 +6,7 @@ import {
   enableOneSignalNotifications,
 } from "./lib/onesignal";
 import { buildApiUrl } from "./config/api";
+import BookingForm from "./components/BookingForm";
 
 
 const STORAGE_MERCHANT_CONTACT = "zeltyo_merchant_contact";
@@ -107,6 +108,9 @@ const [clientData, setClientData] = useState(null);
 const [name, setName] = useState("");
 const [email, setEmail] = useState("");
 const [phone, setPhone] = useState("");
+const [clientBookings, setClientBookings] = useState([]);
+const [menuItems, setMenuItems] = useState([]);
+
 
 useEffect(() => {
   try {
@@ -277,7 +281,7 @@ const dynamicBusiness = useMemo(() => {
   const reviewUrl = `https://www.google.com/search?q=${businessQuery}`;
 
   return {
-    id: "BUS-DYNAMIC",
+    id: programSettings?.businessId || "BUS-DYNAMIC",
     name,
     address,
     city,
@@ -337,6 +341,28 @@ if (!selectedBusiness) {
     </div>
   );
 }
+
+useEffect(() => {
+  async function loadMenu() {
+    try {
+      if (!selectedBusiness?.id) return;
+
+      const response = await fetch(buildApiUrl(`/menu/${selectedBusiness.id}`));
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Erreur chargement menu");
+      }
+
+      setMenuItems(data.items || []);
+    } catch (error) {
+      console.error("Erreur chargement menu :", error);
+      setMenuItems([]);
+    }
+  }
+
+  loadMenu();
+}, [selectedBusiness?.id]);
 
 
 const selectedBusinessDistance =
@@ -415,6 +441,53 @@ const client = clientData
       zoneLabel: selectedBusiness.zoneLabel,
       radiusKm: selectedBusiness.radiusKm,
     };
+
+    const loadClientBookings = useCallback(async (clientId) => {
+  try {
+    if (!clientId) return;
+
+    const response = await fetch(buildApiUrl(`/bookings/by-client/${clientId}`));
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Erreur chargement réservations client");
+    }
+
+    setClientBookings(data.bookings || []);
+  } catch (error) {
+    console.error("Erreur chargement réservations client :", error);
+  }
+}, []);   
+
+useEffect(() => {
+  if (clientData?.id) {
+    loadClientBookings(clientData.id);
+  }
+}, [clientData?.id, loadClientBookings]);
+
+useEffect(() => {
+  async function loadMenu() {
+    try {
+      if (!selectedBusiness?.id) return;
+
+      const response = await fetch(buildApiUrl(`/menu/${selectedBusiness.id}`));
+      const data = await response.json();
+
+      console.log("MENU CLIENT =", data);
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Erreur chargement menu");
+      }
+
+      setMenuItems(data.items || []);
+    } catch (error) {
+      console.error("Erreur chargement menu :", error);
+      setMenuItems([]);
+    }
+  }
+
+  loadMenu();
+}, [selectedBusiness?.id]);
 
 const createClient = async () => {
   try {
@@ -566,6 +639,9 @@ if (isLocalhost) {
     `;
     document.head.appendChild(style);
   }, []);
+
+  
+
 
   return (
     <div
@@ -1134,29 +1210,11 @@ height: 145,
                   </div>
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      onClick={() => {
-                        const business = BUSINESSES.find(
-                          (b) => b.id === featuredOffer.businessId
-                        );
-                        if (!business) return;
-                        const zoneMeta = ZONES.find(
-                          (z) => z.id === business.zoneId
-                        );
-                        setLocationMode("manual");
-                        setSelectedZone(business.zoneId);
-                        setSelectedBusinessId(business.id);
-                        if (zoneMeta) {
-                          setSelectedCountry(zoneMeta.country);
-                          setSelectedCity(zoneMeta.city);
-                          setSelectedSector(zoneMeta.id);
-                        }
-                      }}
-                      style={copperButton()}
-                    >
-                      Voir le commerce
-                    </button>
-
+                   <a href="#commerce" style={{ textDecoration: "none" }}>
+  <button style={copperButton()}>
+    Voir le commerce
+  </button>
+</a>
                     <a
                       href={featuredOffer.googleMapsUrl}
                       target="_blank"
@@ -1384,29 +1442,11 @@ height: 145,
                     </div>
 
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => {
-                          const business = BUSINESSES.find(
-                            (b) => b.id === offer.businessId
-                          );
-                          if (!business) return;
-                          const zoneMeta = ZONES.find(
-                            (z) => z.id === business.zoneId
-                          );
-                          setLocationMode("manual");
-                          setSelectedZone(business.zoneId);
-                          setSelectedBusinessId(business.id);
-                          if (zoneMeta) {
-                            setSelectedCountry(zoneMeta.country);
-                            setSelectedCity(zoneMeta.city);
-                            setSelectedSector(zoneMeta.id);
-                          }
-                        }}
-                        style={copperButton()}
-                      >
-                        Voir le commerce
-                      </button>
-
+                      <a href="#commerce" style={{ textDecoration: "none" }}>
+  <button style={copperButton()}>
+    Voir le commerce
+  </button>
+</a>
                       <a
                         href={offer.googleMapsUrl}
                         target="_blank"
@@ -1590,6 +1630,116 @@ height: 145,
       Créer une carte fidélité
     </button>
   </div>
+</div>
+
+<BookingForm
+  selectedBusiness={{
+    ...selectedBusiness,
+    menu: menuItems,
+  }}
+  clientData={client}
+/>
+
+<div
+  style={{
+    background: COLORS.surface,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 18,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: 14,
+      color: COLORS.goldLight,
+      fontSize: 22,
+    }}
+  >
+    Mes réponses de réservation
+  </h3>
+
+  {clientBookings.length === 0 ? (
+    <p style={{ color: COLORS.textSoft }}>
+      Aucune réponse de réservation pour le moment.
+    </p>
+  ) : (
+    <div style={{ display: "grid", gap: 12 }}>
+      {clientBookings.map((booking) => {
+        const statusLabel =
+          booking.status === "pending"
+            ? "En attente"
+            : booking.status === "confirmed"
+            ? "Confirmée"
+            : booking.status === "cancelled"
+            ? "Refusée"
+            : booking.status;
+
+        return (
+          <div
+            key={booking.id}
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 16,
+              padding: 14,
+              background: COLORS.surfaceSoft,
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 800,
+                color: COLORS.text,
+                marginBottom: 6,
+              }}
+            >
+              Demande du {booking.date} à {booking.time}
+            </div>
+
+            <div
+              style={{
+                color:
+                  booking.status === "pending"
+                    ? COLORS.copperLight
+                    : booking.status === "confirmed"
+                    ? COLORS.success
+                    : COLORS.redLight,
+                fontWeight: 800,
+                marginBottom: 8,
+              }}
+            >
+              Statut : {statusLabel}
+            </div>
+
+            {booking.merchantResponse ? (
+              <div style={{ color: COLORS.textSoft, marginBottom: 6 }}>
+                Réponse du commerçant :{" "}
+                <strong style={{ color: COLORS.text }}>
+                  {booking.merchantResponse}
+                </strong>
+              </div>
+            ) : null}
+
+            {booking.proposedDate || booking.proposedTime ? (
+              <div style={{ color: COLORS.textSoft, marginBottom: 6 }}>
+                Nouveau créneau proposé :{" "}
+                <strong style={{ color: COLORS.text }}>
+                  {booking.proposedDate || "-"} {booking.proposedTime ? `à ${booking.proposedTime}` : ""}
+                </strong>
+              </div>
+            ) : null}
+
+            {booking.note ? (
+              <div style={{ color: COLORS.textSoft }}>
+                Votre note : {booking.note}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  )}
 </div>
 
         <div
