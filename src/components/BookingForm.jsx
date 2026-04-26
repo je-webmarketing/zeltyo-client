@@ -22,8 +22,6 @@ export default function BookingForm({ selectedBusiness, clientData }) {
   });
 
   useEffect(() => {
-    console.log("MENU REÇU DANS BOOKING =", selectedBusiness?.menu);
-
     if (Array.isArray(selectedBusiness?.menu)) {
       setMenuItems(selectedBusiness.menu.filter((item) => item.active !== false));
     } else {
@@ -37,14 +35,12 @@ export default function BookingForm({ selectedBusiness, clientData }) {
 
   function addToCart(item) {
     setCart((prev) => {
-      const existing = prev.find((p) => p.id === item.id);
-
+      const existing = prev.find((i) => i.id === item.id);
       if (existing) {
-        return prev.map((p) =>
-          p.id === item.id ? { ...p, qty: p.qty + 1 } : p
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
         );
       }
-
       return [...prev, { ...item, qty: 1 }];
     });
   }
@@ -52,8 +48,18 @@ export default function BookingForm({ selectedBusiness, clientData }) {
   function removeFromCart(itemId) {
     setCart((prev) =>
       prev
-        .map((p) => (p.id === itemId ? { ...p, qty: p.qty - 1 } : p))
-        .filter((p) => p.qty > 0)
+        .map((item) =>
+          item.id === itemId ? { ...item, qty: item.qty - 1 } : item
+        )
+        .filter((item) => item.qty > 0)
+    );
+  }
+
+  function increaseCartItem(itemId) {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, qty: item.qty + 1 } : item
+      )
     );
   }
 
@@ -61,6 +67,56 @@ export default function BookingForm({ selectedBusiness, clientData }) {
     (sum, item) => sum + Number(item.price || 0) * item.qty,
     0
   );
+
+  const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+
+  function sendCartWhatsApp() {
+    const phone =
+      selectedBusiness?.phone ||
+      selectedBusiness?.merchantPhone ||
+      selectedBusiness?.contactPhone ||
+      "";
+
+    const cleanPhone = phone.replace(/\D/g, "");
+
+    if (!cleanPhone) {
+      alert("Numéro WhatsApp du commerçant manquant");
+      return;
+    }
+
+    if (cart.length === 0) {
+      alert("Ajoute au moins un produit au panier");
+      return;
+    }
+
+    const message = `Bonjour 👋
+
+Je souhaite commander :
+
+${cart
+  .map(
+    (item) =>
+      `• ${item.name} x${item.qty} — ${(
+        Number(item.price || 0) * item.qty
+      ).toFixed(2)} €`
+  )
+  .join("\n")}
+
+💰 Total : ${totalPrice.toFixed(2)} €
+
+👤 Nom : ${bookingForm.clientName || clientData?.name || ""}
+📞 Téléphone : ${bookingForm.clientPhone || clientData?.phone || ""}
+
+🕒 Heure : ${new Date().toLocaleString()}
+📍 Commerce : ${selectedBusiness?.name || "Commerce"}
+
+Merci 👍`;
+
+    window.open(
+      `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+  }
 
   async function handlePayment() {
     try {
@@ -75,19 +131,14 @@ export default function BookingForm({ selectedBusiness, clientData }) {
         buildApiUrl("/stripe/create-checkout-session"),
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            items: cart,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: cart }),
         }
       );
 
       const data = await response.json();
 
       if (!response.ok || !data.url) {
-        console.error("Erreur Stripe :", data);
         alert(data?.error || "Erreur Stripe");
         return;
       }
@@ -123,7 +174,6 @@ export default function BookingForm({ selectedBusiness, clientData }) {
           alert("Merci de remplir date et heure de retrait.");
           return;
         }
-
         if (cart.length === 0) {
           alert("Merci d’ajouter au moins un produit à la commande.");
           return;
@@ -139,15 +189,21 @@ export default function BookingForm({ selectedBusiness, clientData }) {
           alert("Merci de remplir adresse + heure de livraison.");
           return;
         }
+        if (cart.length === 0) {
+          alert("Merci d’ajouter au moins un produit à la commande.");
+          return;
+        }
       }
 
       setLoading(true);
 
+      const hasOrder =
+        bookingForm.requestType === "pickup" ||
+        bookingForm.requestType === "delivery";
+
       const response = await fetch(buildApiUrl("/bookings"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId: selectedBusiness?.id || "",
           clientId: clientData?.id || "",
@@ -171,17 +227,16 @@ export default function BookingForm({ selectedBusiness, clientData }) {
               ? bookingForm.deliveryAddress.trim()
               : "",
           note: bookingForm.note,
-          items:
-            bookingForm.requestType === "pickup"
-              ? cart.map((item) => ({
-                  id: item.id,
-                  name: item.name,
-                  price: Number(item.price || 0),
-                  qty: item.qty,
-                  category: item.category || "",
-                }))
-              : [],
-          totalPrice: bookingForm.requestType === "pickup" ? totalPrice : 0,
+          items: hasOrder
+            ? cart.map((item) => ({
+                id: item.id,
+                name: item.name,
+                price: Number(item.price || 0),
+                qty: item.qty,
+                category: item.category || "",
+              }))
+            : [],
+          totalPrice: hasOrder ? totalPrice : 0,
         }),
       });
 
@@ -305,14 +360,17 @@ export default function BookingForm({ selectedBusiness, clientData }) {
         </>
       )}
 
-      {bookingForm.requestType === "pickup" && (
+      {(bookingForm.requestType === "pickup" ||
+        bookingForm.requestType === "delivery") && (
         <>
-          <input
-            type="time"
-            value={bookingForm.pickupTime}
-            onChange={(e) => handleChange("pickupTime", e.target.value)}
-            style={inputStyle()}
-          />
+          {bookingForm.requestType === "pickup" && (
+            <input
+              type="time"
+              value={bookingForm.pickupTime}
+              onChange={(e) => handleChange("pickupTime", e.target.value)}
+              style={inputStyle()}
+            />
+          )}
 
           <div style={{ marginTop: "20px", marginBottom: "12px" }}>
             <strong style={{ color: "#F2D06B" }}>Carte du commerçant</strong>
@@ -328,12 +386,13 @@ export default function BookingForm({ selectedBusiness, clientData }) {
                     key={item.id}
                     style={{
                       border: "1px solid #2A2A2A",
-                      borderRadius: "12px",
-                      padding: "12px",
+                      borderRadius: "14px",
+                      padding: "14px",
                       background: "#161616",
+                      textAlign: "center",
                     }}
                   >
-                    <div style={{ fontWeight: 800, color: "#F7F4EA" }}>
+                    <div style={{ fontWeight: 900, color: "#F7F4EA" }}>
                       {item.name}
                     </div>
 
@@ -341,14 +400,14 @@ export default function BookingForm({ selectedBusiness, clientData }) {
                       <div
                         style={{
                           display: "inline-block",
-                          marginTop: "4px",
-                          padding: "3px 8px",
+                          marginTop: "6px",
+                          padding: "4px 9px",
                           borderRadius: "999px",
                           background: "rgba(242,208,107,0.12)",
                           border: "1px solid rgba(242,208,107,0.3)",
                           color: "#F2D06B",
                           fontSize: "11px",
-                          fontWeight: 700,
+                          fontWeight: 800,
                         }}
                       >
                         {item.category}
@@ -360,7 +419,7 @@ export default function BookingForm({ selectedBusiness, clientData }) {
                         style={{
                           fontSize: "13px",
                           color: "#CFC7B0",
-                          marginTop: "4px",
+                          marginTop: "6px",
                         }}
                       >
                         {item.description}
@@ -369,8 +428,8 @@ export default function BookingForm({ selectedBusiness, clientData }) {
 
                     <div
                       style={{
-                        marginTop: "6px",
-                        fontWeight: 700,
+                        marginTop: "8px",
+                        fontWeight: 900,
                         color: "#F2A65A",
                       }}
                     >
@@ -381,18 +440,18 @@ export default function BookingForm({ selectedBusiness, clientData }) {
                       type="button"
                       onClick={() => addToCart(item)}
                       style={{
-                        marginTop: "10px",
+                        marginTop: "12px",
                         background:
                           "linear-gradient(135deg, #D97A32, #F2A65A)",
                         color: "#111111",
                         border: "none",
-                        padding: "10px 12px",
+                        padding: "10px 14px",
                         borderRadius: "10px",
                         cursor: "pointer",
-                        fontWeight: 800,
+                        fontWeight: 900,
                       }}
                     >
-                      Ajouter
+                      Ajouter au panier
                     </button>
                   </div>
                 ))}
@@ -405,58 +464,63 @@ export default function BookingForm({ selectedBusiness, clientData }) {
               style={{
                 marginTop: "20px",
                 marginBottom: "12px",
-                padding: "14px",
-                borderRadius: "12px",
+                padding: "16px",
+                borderRadius: "16px",
                 background: "#161616",
                 border: "1px solid #2A2A2A",
               }}
             >
-              <strong style={{ color: "#F2D06B" }}>Votre commande</strong>
+              <strong style={{ color: "#F2D06B", fontSize: "18px" }}>
+                Votre commande
+              </strong>
 
-              <div style={{ marginTop: "12px", display: "grid", gap: "8px" }}>
+              <div style={{ marginTop: "12px", display: "grid", gap: "10px" }}>
                 {cart.map((item) => (
                   <div
                     key={item.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
                       gap: "10px",
                       color: "#F7F4EA",
+                      borderBottom: "1px solid #2A2A2A",
+                      paddingBottom: "10px",
                     }}
                   >
-                    <span>
-                      {item.name} x{item.qty}
-                    </span>
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{item.name}</div>
+                      <div style={{ color: "#CFC7B0", fontSize: "13px" }}>
+                        {Number(item.price || 0).toFixed(2)} € / unité
+                      </div>
+                    </div>
 
-                    <span>
-                      {(Number(item.price || 0) * item.qty).toFixed(2)} €
-                    </span>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ marginBottom: "6px", fontWeight: 800 }}>
+                        {(Number(item.price || 0) * item.qty).toFixed(2)} €
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => removeFromCart(item.id)}
-                      style={{
-                        background: "#1A1A1A",
-                        color: "#F7F4EA",
-                        border: "1px solid #2A2A2A",
-                        padding: "6px 10px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        fontWeight: 700,
-                      }}
-                    >
-                      -
-                    </button>
+                      <button type="button" onClick={() => removeFromCart(item.id)}>
+                        -
+                      </button>
+
+                      <span style={{ margin: "0 8px", fontWeight: 900 }}>
+                        {item.qty}
+                      </span>
+
+                      <button type="button" onClick={() => increaseCartItem(item.id)}>
+                        +
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div
                 style={{
-                  marginTop: "12px",
-                  fontWeight: 800,
+                  marginTop: "14px",
+                  fontWeight: 900,
                   color: "#F2A65A",
+                  fontSize: "18px",
                 }}
               >
                 Total : {totalPrice.toFixed(2)} €
@@ -464,17 +528,35 @@ export default function BookingForm({ selectedBusiness, clientData }) {
 
               <button
                 type="button"
+                onClick={sendCartWhatsApp}
+                style={{
+                  marginTop: "12px",
+                  background: "#25D366",
+                  color: "#111111",
+                  border: "none",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  width: "100%",
+                }}
+              >
+                Commander via WhatsApp
+              </button>
+
+              <button
+                type="button"
                 onClick={handlePayment}
                 disabled={paying}
                 style={{
-                  marginTop: "12px",
+                  marginTop: "10px",
                   background: "linear-gradient(135deg, #22c55e, #16a34a)",
                   color: "#fff",
                   border: "none",
                   padding: "12px",
                   borderRadius: "10px",
                   cursor: paying ? "not-allowed" : "pointer",
-                  fontWeight: 800,
+                  fontWeight: 900,
                   width: "100%",
                   opacity: paying ? 0.7 : 1,
                 }}
@@ -490,11 +572,11 @@ export default function BookingForm({ selectedBusiness, clientData }) {
                   background: "#1A1A1A",
                   color: "#fff",
                   border: "1px solid #333",
-                  padding: "8px 12px",
+                  padding: "10px 12px",
                   borderRadius: "8px",
                   cursor: "pointer",
                   width: "100%",
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 Vider le panier
@@ -521,7 +603,7 @@ export default function BookingForm({ selectedBusiness, clientData }) {
         style={{
           ...inputStyle(),
           cursor: "pointer",
-          fontWeight: 800,
+          fontWeight: 900,
         }}
       >
         {loading ? "Envoi..." : "Envoyer la demande"}
@@ -544,17 +626,13 @@ export default function BookingForm({ selectedBusiness, clientData }) {
             color: "#111",
             padding: "14px 20px",
             borderRadius: "999px",
-            fontWeight: 800,
+            fontWeight: 900,
             cursor: "pointer",
             boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
             zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
           }}
         >
-          🛒 {cart.reduce((sum, item) => sum + item.qty, 0)} article(s) —{" "}
-          {totalPrice.toFixed(2)} €
+          🛒 {totalQty} article(s) — {totalPrice.toFixed(2)} €
         </div>
       )}
     </div>

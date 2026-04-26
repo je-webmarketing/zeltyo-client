@@ -110,6 +110,7 @@ const [email, setEmail] = useState("");
 const [phone, setPhone] = useState("");
 const [clientBookings, setClientBookings] = useState([]);
 const [menuItems, setMenuItems] = useState([]);
+const [menuImage, setMenuImage] = useState("");
 
 
 useEffect(() => {
@@ -131,6 +132,23 @@ useEffect(() => {
     }
   } catch (error) {
     console.error("Erreur lecture données commerçant côté client :", error);
+  }
+}, []);
+
+useEffect(() => {
+  const rawMenu = localStorage.getItem("zeltyo_menu");
+  const rawImage = localStorage.getItem("merchant_menu_image");
+
+  if (rawMenu) {
+    try {
+      setMenuItems(JSON.parse(rawMenu));
+    } catch (e) {
+      console.error("Erreur lecture menu client");
+    }
+  }
+
+  if (rawImage) {
+    setMenuImage(rawImage);
   }
 }, []);
 
@@ -778,6 +796,52 @@ height: 145,
           >
             Carte fidélité digitale
           </div>
+
+         {/* MENU IMAGE */}
+{menuImage && (
+  <div style={{ marginTop: "20px" }}>
+    <h3 style={{ fontSize: "18px", fontWeight: 900 }}>
+      📸 Notre carte
+    </h3>
+
+    <img
+      src={menuImage}
+      alt="Menu"
+      style={{
+        width: "100%",
+        borderRadius: "16px",
+        marginTop: "10px",
+      }}
+    />
+  </div>
+)}
+
+{/* MENU PRODUITS */}
+{menuItems.length > 0 && (
+  <div style={{ marginTop: "24px" }}>
+    <h3 style={{ fontSize: "18px", fontWeight: 900 }}>
+      🍽️ Nos produits
+    </h3>
+
+    {menuItems
+      .filter((item) => item.active)
+      .map((item) => (
+        <div
+          key={item.id}
+          style={{
+            padding: "12px",
+            borderBottom: "1px solid #333",
+          }}
+        >
+          <div style={{ fontWeight: 800 }}>{item.name}</div>
+          <div style={{ color: "#aaa" }}>{item.description}</div>
+          <div style={{ fontWeight: 700 }}>
+            {Number(item.price).toFixed(2)} €
+          </div>
+        </div>
+      ))}
+  </div>
+)} 
 
           <h1
             style={{
