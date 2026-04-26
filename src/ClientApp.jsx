@@ -135,23 +135,6 @@ useEffect(() => {
   }
 }, []);
 
-useEffect(() => {
-  const rawMenu = localStorage.getItem("zeltyo_menu");
-  const rawImage = localStorage.getItem("merchant_menu_image");
-
-  if (rawMenu) {
-    try {
-      setMenuItems(JSON.parse(rawMenu));
-    } catch (e) {
-      console.error("Erreur lecture menu client");
-    }
-  }
-
-  if (rawImage) {
-    setMenuImage(rawImage);
-  }
-}, []);
-
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -360,28 +343,6 @@ if (!selectedBusiness) {
   );
 }
 
-useEffect(() => {
-  async function loadMenu() {
-    try {
-      if (!selectedBusiness?.id) return;
-
-      const response = await fetch(buildApiUrl(`/menu/${selectedBusiness.id}`));
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Erreur chargement menu");
-      }
-
-      setMenuItems(data.items || []);
-    } catch (error) {
-      console.error("Erreur chargement menu :", error);
-      setMenuItems([]);
-    }
-  }
-
-  loadMenu();
-}, [selectedBusiness?.id]);
-
 
 const selectedBusinessDistance =
   geoState.coords &&
@@ -423,6 +384,26 @@ const featuredOffer = useMemo(() => {
 
   return ranked[0] || null;
 }, [nearbyOffers]);
+
+useEffect(() => {
+  async function loadMenu() {
+    try {
+      const response = await fetch(buildApiUrl("/menu/BUS-2"));
+      const data = await response.json();
+
+      console.log("MENU CLIENT =", data);
+
+      if (data.ok) {
+        setMenuItems(data.items || []);
+      }
+    } catch (error) {
+      console.error("Erreur chargement menu client :", error);
+      setMenuItems([]);
+    }
+  }
+
+  loadMenu();
+}, []);
 
 const progress = selectedBusiness
   ? (selectedBusiness.points / selectedBusiness.rewardGoal) * 100
@@ -483,29 +464,6 @@ useEffect(() => {
   }
 }, [clientData?.id, loadClientBookings]);
 
-useEffect(() => {
-  async function loadMenu() {
-    try {
-      if (!selectedBusiness?.id) return;
-
-      const response = await fetch(buildApiUrl(`/menu/${selectedBusiness.id}`));
-      const data = await response.json();
-
-      console.log("MENU CLIENT =", data);
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Erreur chargement menu");
-      }
-
-      setMenuItems(data.items || []);
-    } catch (error) {
-      console.error("Erreur chargement menu :", error);
-      setMenuItems([]);
-    }
-  }
-
-  loadMenu();
-}, [selectedBusiness?.id]);
 
 const createClient = async () => {
   try {
@@ -1699,7 +1657,9 @@ height: 145,
 <BookingForm
   selectedBusiness={{
     ...selectedBusiness,
+    id: "BUS-2",
     menu: menuItems,
+    phone: merchantContact?.phone || "",
   }}
   clientData={client}
 />
