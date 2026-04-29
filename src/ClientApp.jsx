@@ -12,6 +12,9 @@ import BookingForm from "./components/BookingForm";
 const STORAGE_MERCHANT_CONTACT = "zeltyo_merchant_contact";
 const STORAGE_PROGRAM_SETTINGS = "zeltyo_program_settings";
 const STORAGE_PROMOTIONS = "zeltyo_promotions";
+const STORAGE_CUSTOMERS = "zeltyo_customers";
+const STORAGE_MENU = "zeltyo_menu";
+const STORAGE_MENU_IMAGE = "merchant_menu_image";
 
 const COLORS = {
   bg: "#050505",
@@ -112,6 +115,35 @@ const [clientBookings, setClientBookings] = useState([]);
 const [menuItems, setMenuItems] = useState([]);
 const [menuImage, setMenuImage] = useState("");
 
+const loadClientFromBackend = useCallback(async () => {
+  const pathParts = window.location.pathname.split("/");
+  const cardId = pathParts.includes("card")
+    ? pathParts[pathParts.indexOf("card") + 1]
+    : null;
+
+  if (!cardId) return;
+
+  try {
+    const response = await fetch(buildApiUrl(`/clients/by-loyalty/${cardId}`));
+    const data = await response.json();
+
+    if (response.ok && data.ok && data.client) {
+      setClientData(data.client);
+    }
+  } catch (error) {
+    console.error("Erreur chargement client backend :", error);
+  }
+}, []);
+
+useEffect(() => {
+  loadClientFromBackend();
+
+  const interval = setInterval(() => {
+    loadClientFromBackend();
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [loadClientFromBackend]);
 
 useEffect(() => {
   try {
@@ -134,7 +166,6 @@ useEffect(() => {
     console.error("Erreur lecture données commerçant côté client :", error);
   }
 }, []);
-
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -386,60 +417,39 @@ const featuredOffer = useMemo(() => {
 }, [nearbyOffers]);
 
 useEffect(() => {
-  async function loadMenu() {
-    try {
-      const response = await fetch(buildApiUrl("/menu/BUS-2"));
-      const data = await response.json();
+  try {
+    const savedMenu = JSON.parse(localStorage.getItem(STORAGE_MENU) || "[]");
+    const savedMenuImage = localStorage.getItem(STORAGE_MENU_IMAGE) || "";
 
-      console.log("MENU CLIENT =", data);
-
-      if (data.ok) {
-        setMenuItems(data.items || []);
-      }
-    } catch (error) {
-      console.error("Erreur chargement menu client :", error);
-      setMenuItems([]);
-    }
+    setMenuItems(Array.isArray(savedMenu) ? savedMenu : []);
+    setMenuImage(savedMenuImage);
+  } catch {
+    setMenuItems([]);
+    setMenuImage("");
   }
-
-  loadMenu();
 }, []);
 
-const progress = selectedBusiness
-  ? (selectedBusiness.points / selectedBusiness.rewardGoal) * 100
-  : 0;
 
 if (!selectedBusiness) {
   return <div style={{ color: "#fff", padding: 20 }}>Aucun commerce</div>;
 }
 
-const client = clientData
-  ? {
-      id: clientData.id,
-      loyaltyId: clientData.loyaltyId || clientData.id,
-      name: clientData.name || "Client",
-      phone: clientData.phone || "",
-      email: clientData.email || "",
-      country: selectedBusiness.country,
-      region: selectedBusiness.region,
-      city: selectedBusiness.city,
-      zoneId: selectedBusiness.zoneId,
-      zoneLabel: selectedBusiness.zoneLabel,
-      radiusKm: selectedBusiness.radiusKm,
-    }
-  : {
-      id: "client-demo-1",
-      loyaltyId: "CL-1001",
-      name: "Client",
-      phone: "",
-      email: "",
-      country: selectedBusiness.country,
-      region: selectedBusiness.region,
-      city: selectedBusiness.city,
-      zoneId: selectedBusiness.zoneId,
-      zoneLabel: selectedBusiness.zoneLabel,
-      radiusKm: selectedBusiness.radiusKm,
-    };
+const client = {
+  id: clientData?.id || "",
+  loyaltyId: clientData?.loyaltyId || clientData?.id || "",
+  name: clientData?.name || "Client",
+  phone: clientData?.phone || "",
+  email: clientData?.email || "",
+  country: selectedBusiness.country,
+  region: selectedBusiness.region,
+  city: selectedBusiness.city,
+  zoneId: selectedBusiness.zoneId,
+  zoneLabel: selectedBusiness.zoneLabel,
+  radiusKm: selectedBusiness.radiusKm,
+  points: Number(clientData?.points || 0),
+  visits: Number(clientData?.visits || 0),
+  rewardsAvailable: Number(clientData?.rewardsAvailable || 0),
+};
 
     const loadClientBookings = useCallback(async (clientId) => {
   try {
@@ -458,27 +468,46 @@ const client = clientData
   }
 }, []);   
 
+const clientPoints = Number(client?.points || 0);
+const clientVisits = Number(client?.visits || 0);
+const clientRewards = Number(client?.rewardsAvailable || 0);
+const rewardGoal = Number(selectedBusiness?.rewardGoal || 10);
+
+const clientProgress = rewardGoal > 0 ? (clientPoints / rewardGoal) * 100 : 0;
+
+const cyclePoints = rewardGoal > 0 ? clientPoints % rewardGoal : 0;
+
+const clientRewardRemaining =
+  rewardGoal <= 0
+    ? 0
+    : clientPoints > 0 && cyclePoints === 0
+    ? 0
+    : rewardGoal - cyclePoints;
+
+const rewardAvailable = clientRewards > 0 || clientPoints >= rewardGoal;
+
 useEffect(() => {
   if (clientData?.id) {
     loadClientBookings(clientData.id);
   }
 }, [clientData?.id, loadClientBookings]);
 
-
 const createClient = async () => {
+  const cleanName = name.trim();
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phone.trim();
+
+  if (!cleanName || (!cleanEmail && !cleanPhone)) {
+    alert("Merci de renseigner un nom et au moins un email ou un téléphone.");
+    return;
+  }
+
   try {
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim();
-
-    if (!cleanName || (!cleanEmail && !cleanPhone)) {
-      alert("Merci de renseigner un nom et au moins un email ou un téléphone.");
-      return;
-    }
-
     const response = await fetch(buildApiUrl("/clients"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         name: cleanName,
         email: cleanEmail,
@@ -488,25 +517,37 @@ const createClient = async () => {
 
     const data = await response.json();
 
-    if (!response.ok || !data.ok) {
+    if (!response.ok || !data.ok || !data.client) {
       throw new Error(data.error || "Erreur création client");
     }
 
     setClientData(data.client);
 
-    if (data.created) {
-      alert("Client créé avec succès");
-    } else {
-      alert("Client déjà existant, fiche mise à jour");
-    }
+    window.history.replaceState(
+      null,
+      "",
+      `/card/${data.client.loyaltyId || data.client.id}`
+    );
+
+    setName("");
+    setEmail("");
+    setPhone("");
+
+    alert(data.created ? "Carte fidélité créée ✅" : "Carte fidélité retrouvée ✅");
   } catch (error) {
-    console.error("Erreur création client :", error);
-    alert(error.message || "Erreur création client");
+    console.error("Erreur création carte :", error);
+    alert("Erreur création carte fidélité");
   }
 };
 
-  const cardUrl = `https://zeltyo-clients.netlify.app/card/${client.loyaltyId || client.id}`;
+  const currentCardId = window.location.pathname.split("/card/")[1];
+
+const cardUrl = `https://zeltyo-clients.netlify.app/card/${
+  currentCardId || client?.loyaltyId || client?.id
+}`;
   console.log("cardUrl =", cardUrl);
+  console.log("clientData =", clientData);
+console.log("clientPoints =", clientPoints);
 
   const saveClientSubscription = async (newSubscriptionId) => {
     try {
@@ -579,14 +620,7 @@ if (isLocalhost) {
     }
   };
 
-  const rewardRemaining = Math.max(
-    selectedBusiness.rewardGoal - selectedBusiness.points,
-    0
-  );
-
-
-
-  const visibleOfferCards = useMemo(() => {
+   const visibleOfferCards = useMemo(() => {
     const list = filteredOffers.filter((o) => o.id !== featuredOffer?.id);
     return showAllOffers ? list : list.slice(0, 4);
   }, [filteredOffers, featuredOffer, showAllOffers]);
@@ -615,8 +649,6 @@ if (isLocalhost) {
     `;
     document.head.appendChild(style);
   }, []);
-
-  
 
 
   return (
@@ -1804,7 +1836,7 @@ height: 145,
                   color: COLORS.goldLight,
                 }}
               >
-                {selectedBusiness.points} / {selectedBusiness.rewardGoal}
+                {clientPoints} / {rewardGoal}
               </div>
             </div>
 
@@ -1820,9 +1852,9 @@ height: 145,
                 whiteSpace: "nowrap",
               }}
             >
-              {rewardRemaining === 0
+              {clientRewardRemaining === 0
                 ? "Récompense atteinte"
-                : `${rewardRemaining} point(s) restants`}
+                : `${clientRewardRemaining} point(s) restants`}
             </div>
           </div>
 
@@ -1838,7 +1870,7 @@ height: 145,
           >
             <div
               style={{
-                width: `${Math.min(progress, 100)}%`,
+                width: `${Math.min(clientProgress, 100)}%`,
                 background: "linear-gradient(90deg, #D97A32, #F2A65A)",
                 height: "100%",
                 borderRadius: 999,
@@ -1846,6 +1878,23 @@ height: 145,
               }}
             />
           </div>
+
+          {rewardAvailable && (
+  <div
+    style={{
+      marginBottom: 14,
+      padding: 14,
+      borderRadius: 16,
+      background: "rgba(212,175,55,0.14)",
+      border: `1px solid ${COLORS.gold}`,
+      color: COLORS.goldLight,
+      fontWeight: 900,
+      textAlign: "center",
+    }}
+  >
+    🎁 Récompense disponible !
+  </div>
+)}
 
           <div
             style={{
@@ -1968,7 +2017,7 @@ height: 145,
                 boxShadow: "0 0 12px rgba(217,122,50,0.12)",
               }}
             >
-              {selectedBusiness.points} points
+              {clientPoints} points
             </div>
           </div>
 
@@ -2025,11 +2074,11 @@ height: 145,
               >
                 <MiniStat
                   label="Points"
-                  value={`${selectedBusiness.points}/${selectedBusiness.rewardGoal}`}
+                  value={`${clientPoints}/${rewardGoal}`}
                 />
                 <MiniStat
                   label="Restants"
-                  value={rewardRemaining === 0 ? "0" : String(rewardRemaining)}
+                  value={clientRewardRemaining=== 0 ? "0" : String(clientRewardRemaining)}
                 />
               </div>
 
@@ -2045,7 +2094,7 @@ height: 145,
               >
                 <div
                   style={{
-                    width: `${Math.min(progress, 100)}%`,
+                    width: `${Math.min(clientProgress, 100)}%`,
                     background: "linear-gradient(90deg, #D97A32, #F2A65A)",
                     height: "100%",
                     borderRadius: 999,
@@ -2062,9 +2111,9 @@ height: 145,
                   fontSize: 14,
                 }}
               >
-                {rewardRemaining === 0
+                {clientRewardRemaining === 0
                   ? "Votre récompense premium est disponible."
-                  : `${rewardRemaining} point(s) encore pour débloquer votre récompense.`}
+                  : `${clientRewardRemaining} point(s) encore pour débloquer votre récompense.`}
               </div>
             </div>
 

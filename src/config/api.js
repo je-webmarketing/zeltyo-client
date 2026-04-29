@@ -1,8 +1,5 @@
-const API_BASE_URL = "https://zeltyo-app.onrender.com";
+const API_BASE = "https://zeltyo-backend.onrender.com";
 
-function buildApiUrl(path) {
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE_URL}${cleanPath}`;
+export function buildApiUrl(path) {
+  return `${API_BASE}${path}`;
 }
-
-export { API_BASE_URL, buildApiUrl };
