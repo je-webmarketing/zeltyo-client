@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "https://zeltyo-backend.onrender.com";
+const API_BASE = "http://localhost:3001";
 
 const BUSINESS = {
   name: "Zeltyo Coffee",

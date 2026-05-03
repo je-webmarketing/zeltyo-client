@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   initOneSignal,
   getOneSignalStatus,
   enableOneSignalNotifications,
 } from "./lib/onesignal";
 import { buildApiUrl } from "./config/api";
+
 import BookingForm from "./components/BookingForm";
 import CommerceSection from "./components/CommerceSection";
 import OffersSection from "./components/OffersSection";
@@ -16,12 +16,11 @@ import ClientBookingsSection from "./components/ClientBookingsSection";
 import CreateCardSection from "./components/CreateCardSection";
 import BusinessZoneSection from "./components/BusinessZoneSection";
 import HeroSection from "./components/HeroSection";
-import TopNavSection from "./components/TopNavSection";
+
 
 const STORAGE_MERCHANT_CONTACT = "zeltyo_merchant_contact";
 const STORAGE_PROGRAM_SETTINGS = "zeltyo_program_settings";
 const STORAGE_PROMOTIONS = "zeltyo_promotions";
-const STORAGE_CUSTOMERS = "zeltyo_customers";
 const STORAGE_MENU = "zeltyo_menu";
 const STORAGE_MENU_IMAGE = "merchant_menu_image";
 
@@ -41,8 +40,6 @@ const COLORS = {
   success: "#22c55e",
   blackCard: "#0B0B0B",
 };
-
-
 
 function toRad(value) {
   return (value * Math.PI) / 180;
@@ -102,79 +99,29 @@ function getOfferUrgencyLabel(offer) {
 }
 
 export default function ClientApp() {
-const [locationMode, setLocationMode] = useState("auto");
-
+  const [locationMode, setLocationMode] = useState("auto");
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   const [oneSignalReady, setOneSignalReady] = useState(false);
   const [permission, setPermission] = useState(false);
   const [optedIn, setOptedIn] = useState(false);
   const [subscriptionId, setSubscriptionId] = useState(null);
+
   const [offerFilter, setOfferFilter] = useState("all");
   const [showAllOffers, setShowAllOffers] = useState(false);
 
   const [merchantContact, setMerchantContact] = useState(null);
-const [programSettings, setProgramSettings] = useState(null);
-const [merchantPromotions, setMerchantPromotions] = useState([]);
-const [clientData, setClientData] = useState(null);
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [phone, setPhone] = useState("");
-const [clientBookings, setClientBookings] = useState([]);
-const [menuItems, setMenuItems] = useState([]);
-const [menuImage, setMenuImage] = useState("");
+  const [programSettings, setProgramSettings] = useState(null);
+  const [merchantPromotions, setMerchantPromotions] = useState([]);
 
-const loadClientFromBackend = useCallback(async () => {
-  const pathParts = window.location.pathname.split("/");
-  const cardId = pathParts.includes("card")
-    ? pathParts[pathParts.indexOf("card") + 1]
-    : null;
+  const [clientData, setClientData] = useState(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
-  if (!cardId) return;
-
-  try {
-    const response = await fetch(buildApiUrl(`/clients/by-loyalty/${cardId}`));
-    const data = await response.json();
-
-    if (response.ok && data.ok && data.client) {
-      setClientData(data.client);
-    }
-  } catch (error) {
-    console.error("Erreur chargement client backend :", error);
-  }
-}, []);
-
-useEffect(() => {
-  loadClientFromBackend();
-
-  const interval = setInterval(() => {
-    loadClientFromBackend();
-  }, 5000);
-
-  return () => clearInterval(interval);
-}, [loadClientFromBackend]);
-
-useEffect(() => {
-  try {
-    const rawMerchantContact = localStorage.getItem(STORAGE_MERCHANT_CONTACT);
-    const rawProgramSettings = localStorage.getItem(STORAGE_PROGRAM_SETTINGS);
-    const rawPromotions = localStorage.getItem(STORAGE_PROMOTIONS);
-
-    if (rawMerchantContact) {
-      setMerchantContact(JSON.parse(rawMerchantContact));
-    }
-
-    if (rawProgramSettings) {
-      setProgramSettings(JSON.parse(rawProgramSettings));
-    }
-
-    if (rawPromotions) {
-      setMerchantPromotions(JSON.parse(rawPromotions));
-    }
-  } catch (error) {
-    console.error("Erreur lecture données commerçant côté client :", error);
-  }
-}, []);
+  const [clientBookings, setClientBookings] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuImage, setMenuImage] = useState("");
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -182,7 +129,52 @@ useEffect(() => {
     coords: null,
   });
 
- 
+  const [activeTab, setActiveTab] = useState("offers");
+
+  const loadClientFromBackend = useCallback(async () => {
+    const pathParts = window.location.pathname.split("/");
+    const cardId = pathParts.includes("card")
+      ? pathParts[pathParts.indexOf("card") + 1]
+      : null;
+
+    if (!cardId) return;
+
+    try {
+      const response = await fetch(buildApiUrl(`/clients/by-loyalty/${cardId}`));
+      const data = await response.json();
+
+      if (response.ok && data.ok && data.client) {
+        setClientData(data.client);
+      }
+    } catch (error) {
+      console.error("Erreur chargement client backend :", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadClientFromBackend();
+
+    const interval = setInterval(() => {
+      loadClientFromBackend();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [loadClientFromBackend]);
+
+  useEffect(() => {
+    try {
+      const rawMerchantContact = localStorage.getItem(STORAGE_MERCHANT_CONTACT);
+      const rawProgramSettings = localStorage.getItem(STORAGE_PROGRAM_SETTINGS);
+      const rawPromotions = localStorage.getItem(STORAGE_PROMOTIONS);
+
+      if (rawMerchantContact) setMerchantContact(JSON.parse(rawMerchantContact));
+      if (rawProgramSettings) setProgramSettings(JSON.parse(rawProgramSettings));
+      if (rawPromotions) setMerchantPromotions(JSON.parse(rawPromotions));
+    } catch (error) {
+      console.error("Erreur lecture données commerçant côté client :", error);
+    }
+  }, []);
+
   const requestUserLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
       setGeoState({
@@ -214,13 +206,9 @@ useEffect(() => {
       (error) => {
         let message = "Impossible de récupérer votre position.";
 
-        if (error.code === 1) {
-          message = "Vous avez refusé l'accès à la position.";
-        } else if (error.code === 2) {
-          message = "Position indisponible actuellement.";
-        } else if (error.code === 3) {
-          message = "La demande de géolocalisation a expiré.";
-        }
+        if (error.code === 1) message = "Vous avez refusé l'accès à la position.";
+        if (error.code === 2) message = "Position indisponible actuellement.";
+        if (error.code === 3) message = "La demande de géolocalisation a expiré.";
 
         setGeoState({
           loading: false,
@@ -236,331 +224,338 @@ useEffect(() => {
     );
   }, []);
 
-  
   useEffect(() => {
-  let isMounted = true;
+    let isMounted = true;
 
-  async function bootOneSignal() {
-    const isProd = window.location.origin.includes("zeltyo-clients.netlify.app");
+    async function bootOneSignal() {
+      const isProd = window.location.origin.includes("zeltyo-clients.netlify.app");
 
-    if (!isProd) {
-      console.log("OneSignal désactivé hors production");
+      if (!isProd) {
+        console.log("OneSignal désactivé hors production");
+        return;
+      }
+
+      try {
+        await initOneSignal();
+        const status = await getOneSignalStatus();
+
+        if (!isMounted) return;
+
+        setOneSignalReady(true);
+        setPermission(Boolean(status.permission));
+        setOptedIn(Boolean(status.optedIn));
+        setSubscriptionId(status.subscriptionId || null);
+      } catch (error) {
+        console.error("Erreur init OneSignal :", error);
+
+        if (!isMounted) return;
+
+        setOneSignalReady(false);
+        setPermission(false);
+        setOptedIn(false);
+        setSubscriptionId(null);
+      }
+    }
+
+    bootOneSignal();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setShowAllOffers(false);
+  }, [offerFilter, merchantPromotions]);
+
+  useEffect(() => {
+    try {
+      const savedMenu = JSON.parse(localStorage.getItem(STORAGE_MENU) || "[]");
+      const savedMenuImage = localStorage.getItem(STORAGE_MENU_IMAGE) || "";
+
+      setMenuItems(Array.isArray(savedMenu) ? savedMenu : []);
+      setMenuImage(savedMenuImage);
+    } catch {
+      setMenuItems([]);
+      setMenuImage("");
+    }
+  }, []);
+
+  const dynamicBusiness = useMemo(() => {
+    if (!merchantContact && !programSettings) return null;
+
+    const activePromotions = merchantPromotions.filter(
+      (p) => p.status === "Active"
+    );
+
+    const name = merchantContact?.shopName || "Mon Commerce";
+    const address = merchantContact?.address || "";
+    const city =
+      merchantContact?.city ||
+      programSettings?.locationSettings?.city ||
+      "";
+    const country =
+      merchantContact?.country ||
+      programSettings?.locationSettings?.country ||
+      "";
+
+    const lat = programSettings?.locationSettings?.latitude
+      ? Number(programSettings.locationSettings.latitude)
+      : null;
+
+    const lng = programSettings?.locationSettings?.longitude
+      ? Number(programSettings.locationSettings.longitude)
+      : null;
+
+    const hasCoordinates = lat && lng;
+
+    const businessQuery = encodeURIComponent(
+      [name, address, city, country].filter(Boolean).join(", ")
+    );
+
+    const googleMapsUrl = hasCoordinates
+      ? `https://www.google.com/maps?q=${lat},${lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${businessQuery}`;
+
+    const reviewUrl = `https://www.google.com/search?q=${businessQuery}`;
+
+    return {
+      id: programSettings?.businessId || "BUS-DYNAMIC",
+      name,
+      address,
+      city,
+      country,
+      zoneId: "dynamic-zone",
+      zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
+      radiusKm: Number(programSettings?.locationSettings?.radiusKm || 0),
+      displayRadiusKm: Number(programSettings?.locationSettings?.radiusKm || 20),
+      rewardGoal: Number(programSettings?.rewardGoal || 10),
+      rewardLabel: programSettings?.rewardLabel || "1 récompense",
+      points: 0,
+      promo: activePromotions[0]?.title || "Aucune promotion active",
+      color: programSettings?.primaryColor || "#D4AF37",
+      description: "Retrouvez vos avantages fidélité et vos offres en cours.",
+      lat,
+      lng,
+      hasCoordinates,
+      googleMapsUrl,
+      reviewUrl,
+      offers: activePromotions.map((promo, index) => ({
+        id: promo.id || `PROMO-${index + 1}`,
+        title: promo.title,
+        description: promo.description,
+        type: "flash",
+        discountLabel: promo.code || "Offre",
+        validToday: true,
+        limited: false,
+        ctaLabel: promo.ctaLabel || "",
+        ctaUrl: promo.ctaUrl || "",
+        businessId: "BUS-DYNAMIC",
+        businessName: name,
+        city,
+        zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
+        googleMapsUrl,
+        distanceKm:
+          geoState.coords && lat && lng
+            ? getDistanceKm(geoState.coords.lat, geoState.coords.lng, lat, lng)
+            : Infinity,
+        isNearby: true,
+      })),
+    };
+  }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
+
+  const selectedBusiness = dynamicBusiness || {
+    offers: [],
+  };
+
+  const selectedBusinessDistance =
+    geoState.coords &&
+    selectedBusiness?.lat != null &&
+    selectedBusiness?.lng != null
+      ? getDistanceKm(
+          geoState.coords.lat,
+          geoState.coords.lng,
+          selectedBusiness.lat,
+          selectedBusiness.lng
+        )
+      : null;
+
+  const nearbyOffers = selectedBusiness?.offers || [];
+
+  const filteredOffers = useMemo(() => {
+    if (offerFilter === "all") return nearbyOffers;
+    return nearbyOffers.filter((offer) => offer.type === offerFilter);
+  }, [nearbyOffers, offerFilter]);
+
+  const featuredOffer = useMemo(() => {
+    if (!nearbyOffers.length) return null;
+
+    const ranked = [...nearbyOffers].sort((a, b) => {
+      const aScore =
+        (a.type === "flash" ? 30 : 0) +
+        (a.validToday ? 20 : 0) +
+        (a.limited ? 15 : 0) +
+        (Number.isFinite(a.distanceKm) ? Math.max(0, 20 - a.distanceKm) : 0);
+
+      const bScore =
+        (b.type === "flash" ? 30 : 0) +
+        (b.validToday ? 20 : 0) +
+        (b.limited ? 15 : 0) +
+        (Number.isFinite(b.distanceKm) ? Math.max(0, 20 - b.distanceKm) : 0);
+
+      return bScore - aScore;
+    });
+
+    return ranked[0] || null;
+  }, [nearbyOffers]);
+
+  const visibleOfferCards = useMemo(() => {
+    const list = filteredOffers.filter((o) => o.id !== featuredOffer?.id);
+    return showAllOffers ? list : list.slice(0, 4);
+  }, [filteredOffers, featuredOffer, showAllOffers]);
+
+  const hiddenOffersCount = Math.max(
+    filteredOffers.filter((o) => o.id !== featuredOffer?.id).length -
+      visibleOfferCards.length,
+    0
+  );
+
+  const client = {
+    id: clientData?.id || "",
+    loyaltyId: clientData?.loyaltyId || clientData?.id || "",
+    name: clientData?.name || "Client",
+    phone: clientData?.phone || "",
+    email: clientData?.email || "",
+    country: selectedBusiness.country,
+    region: selectedBusiness.region,
+    city: selectedBusiness.city,
+    zoneId: selectedBusiness.zoneId,
+    zoneLabel: selectedBusiness.zoneLabel,
+    radiusKm: selectedBusiness.radiusKm,
+    points: Number(clientData?.points || 0),
+    visits: Number(clientData?.visits || 0),
+    rewardsAvailable: Number(clientData?.rewardsAvailable || 0),
+  };
+
+  const loadClientBookings = useCallback(async (clientId) => {
+    try {
+      if (!clientId) return;
+
+      const isPhone = String(clientId).startsWith("0");
+
+const endpoint = isPhone
+  ? `/bookings/by-phone/${clientId}`
+  : `/bookings/by-client/${clientId}`;
+
+ console.log("ENDPOINT CLIENT BOOKINGS =", endpoint); 
+
+const response = await fetch(buildApiUrl(endpoint));
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Erreur chargement réservations client");
+      }
+
+      setClientBookings(data.bookings || []);
+    } catch (error) {
+      console.error("Erreur chargement réservations client :", error);
+    }
+  }, []);
+
+useEffect(() => {
+  console.log("CLIENT DATA BOOKINGS =", clientData);
+
+  const fallbackPhone = localStorage.getItem("zeltyo_last_phone");
+  const identifier = clientData?.id || clientData?.phone || fallbackPhone;
+
+  if (!identifier) {
+    console.log("Aucun id/téléphone client pour charger les réservations");
+    return;
+  }
+
+  console.log("IDENTIFIER BOOKINGS =", identifier);
+
+  loadClientBookings(identifier);
+
+  const interval = setInterval(() => {
+    loadClientBookings(identifier);
+  }, 10000);
+
+  return () => clearInterval(interval);
+}, [clientData, loadClientBookings]);
+
+  const clientPoints = Number(client?.points || 0);
+  const clientRewards = Number(client?.rewardsAvailable || 0);
+  const rewardGoal = Number(selectedBusiness?.rewardGoal || 10);
+
+  const clientProgress = rewardGoal > 0 ? (clientPoints / rewardGoal) * 100 : 0;
+  const cyclePoints = rewardGoal > 0 ? clientPoints % rewardGoal : 0;
+
+  const clientRewardRemaining =
+    rewardGoal <= 0
+      ? 0
+      : clientPoints > 0 && cyclePoints === 0
+      ? 0
+      : rewardGoal - cyclePoints;
+
+  const rewardAvailable = clientRewards > 0 || clientPoints >= rewardGoal;
+
+  const createClient = async () => {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim();
+
+    if (!cleanName || (!cleanEmail && !cleanPhone)) {
+      alert("Merci de renseigner un nom et au moins un email ou un téléphone.");
       return;
     }
 
     try {
-      await initOneSignal();
-      const status = await getOneSignalStatus();
+      const response = await fetch(buildApiUrl("/clients"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: cleanName,
+          email: cleanEmail,
+          phone: cleanPhone,
+        }),
+      });
 
-      if (!isMounted) return;
+      const data = await response.json();
 
-      setOneSignalReady(true);
-      setPermission(Boolean(status.permission));
-      setOptedIn(Boolean(status.optedIn));
-      setSubscriptionId(status.subscriptionId || null);
+      if (!response.ok || !data.ok || !data.client) {
+        throw new Error(data.error || "Erreur création client");
+      }
+
+      setClientData(data.client);
+
+      window.history.replaceState(
+        null,
+        "",
+        `/card/${data.client.loyaltyId || data.client.id}`
+      );
+
+      setName("");
+      setEmail("");
+      setPhone("");
+
+      alert(data.created ? "Carte fidélité créée ✅" : "Carte fidélité retrouvée ✅");
     } catch (error) {
-      console.error("Erreur init OneSignal :", error);
-
-      if (!isMounted) return;
-      setOneSignalReady(false);
-      setPermission(false);
-      setOptedIn(false);
-      setSubscriptionId(null);
+      console.error("Erreur création carte :", error);
+      alert("Erreur création carte fidélité");
     }
-  }
-
-  bootOneSignal();
-
-  return () => {
-    isMounted = false;
   };
-}, []);
-
- 
-  useEffect(() => {
-  setShowAllOffers(false);
-}, [offerFilter, merchantPromotions]);
-
-const dynamicBusiness = useMemo(() => {
-  if (!merchantContact && !programSettings) return null;
-
-  const activePromotions = merchantPromotions.filter(
-    (p) => p.status === "Active"
-  );
-
-  const name = merchantContact?.shopName || "Mon Commerce";
-  const address = merchantContact?.address || "";
-  const city =
-    merchantContact?.city ||
-    programSettings?.locationSettings?.city ||
-    "";
-  const country =
-    merchantContact?.country ||
-    programSettings?.locationSettings?.country ||
-    "";
-
-  const lat = programSettings?.locationSettings?.latitude
-    ? Number(programSettings.locationSettings.latitude)
-    : null;
-
-  const lng = programSettings?.locationSettings?.longitude
-    ? Number(programSettings.locationSettings.longitude)
-    : null;
-
-  const hasCoordinates = lat && lng;
-
-  const businessQuery = encodeURIComponent(
-    [name, address, city, country].filter(Boolean).join(", ")
-  );
-
-  // ✅ MAP URL (fix)
-  const googleMapsUrl = hasCoordinates
-    ? `https://www.google.com/maps?q=${lat},${lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${businessQuery}`;
-
-  // ✅ AVIS GOOGLE (fix réel)
-  const reviewUrl = `https://www.google.com/search?q=${businessQuery}`;
-
-  return {
-    id: programSettings?.businessId || "BUS-DYNAMIC",
-    name,
-    address,
-    city,
-    country,
-    zoneId: "dynamic-zone",
-    zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
-    radiusKm: Number(programSettings?.locationSettings?.radiusKm || 0),
-    displayRadiusKm: Number(programSettings?.locationSettings?.radiusKm || 20),
-    rewardGoal: Number(programSettings?.rewardGoal || 10),
-    rewardLabel: programSettings?.rewardLabel || "1 récompense",
-    points: 0,
-    promo: activePromotions[0]?.title || "Aucune promotion active",
-    color: programSettings?.primaryColor || "#D4AF37",
-    description: "Retrouvez vos avantages fidélité et vos offres en cours.",
-    lat,
-    lng,
-    hasCoordinates,
-    googleMapsUrl,
-    reviewUrl,
-
-    offers: activePromotions.map((promo, index) => ({
-      id: promo.id || `PROMO-${index + 1}`,
-      title: promo.title,
-      description: promo.description,
-      type: "flash",
-      discountLabel: promo.code || "Offre",
-      validToday: true,
-      limited: false,
-      ctaLabel: promo.ctaLabel || "",
-      ctaUrl: promo.ctaUrl || "",
-      businessId: "BUS-DYNAMIC",
-      businessName: name,
-      city,
-      zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
-      googleMapsUrl,
-      distanceKm:
-        geoState.coords && lat && lng
-          ? getDistanceKm(
-              geoState.coords.lat,
-              geoState.coords.lng,
-              lat,
-              lng
-            )
-          : Infinity,
-      isNearby: true,
-    })),
-  };
-}, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
-
-const selectedBusiness = dynamicBusiness || {
-  offers: [],
-};
-if (!selectedBusiness) {
-  return (
-    <div style={{ color: "#fff", padding: 20 }}>
-      Chargement...
-    </div>
-  );
-}
-
-
-const selectedBusinessDistance =
-  geoState.coords &&
-  selectedBusiness?.lat != null &&
-  selectedBusiness?.lng != null
-    ? getDistanceKm(
-        geoState.coords.lat,
-        geoState.coords.lng,
-        selectedBusiness.lat,
-        selectedBusiness.lng
-      )
-    : null;
-
-const nearbyOffers = selectedBusiness?.offers || [];
-
-const filteredOffers = useMemo(() => {
-  if (offerFilter === "all") return nearbyOffers;
-  return nearbyOffers.filter((offer) => offer.type === offerFilter);
-}, [nearbyOffers, offerFilter]);
-
-const featuredOffer = useMemo(() => {
-  if (!nearbyOffers.length) return null;
-
-  const ranked = [...nearbyOffers].sort((a, b) => {
-    const aScore =
-      (a.type === "flash" ? 30 : 0) +
-      (a.validToday ? 20 : 0) +
-      (a.limited ? 15 : 0) +
-      (Number.isFinite(a.distanceKm) ? Math.max(0, 20 - a.distanceKm) : 0);
-
-    const bScore =
-      (b.type === "flash" ? 30 : 0) +
-      (b.validToday ? 20 : 0) +
-      (b.limited ? 15 : 0) +
-      (Number.isFinite(b.distanceKm) ? Math.max(0, 20 - b.distanceKm) : 0);
-
-    return bScore - aScore;
-  });
-
-  return ranked[0] || null;
-}, [nearbyOffers]);
-
-useEffect(() => {
-  try {
-    const savedMenu = JSON.parse(localStorage.getItem(STORAGE_MENU) || "[]");
-    const savedMenuImage = localStorage.getItem(STORAGE_MENU_IMAGE) || "";
-
-    setMenuItems(Array.isArray(savedMenu) ? savedMenu : []);
-    setMenuImage(savedMenuImage);
-  } catch {
-    setMenuItems([]);
-    setMenuImage("");
-  }
-}, []);
-
-
-if (!selectedBusiness) {
-  return <div style={{ color: "#fff", padding: 20 }}>Aucun commerce</div>;
-}
-
-const client = {
-  id: clientData?.id || "",
-  loyaltyId: clientData?.loyaltyId || clientData?.id || "",
-  name: clientData?.name || "Client",
-  phone: clientData?.phone || "",
-  email: clientData?.email || "",
-  country: selectedBusiness.country,
-  region: selectedBusiness.region,
-  city: selectedBusiness.city,
-  zoneId: selectedBusiness.zoneId,
-  zoneLabel: selectedBusiness.zoneLabel,
-  radiusKm: selectedBusiness.radiusKm,
-  points: Number(clientData?.points || 0),
-  visits: Number(clientData?.visits || 0),
-  rewardsAvailable: Number(clientData?.rewardsAvailable || 0),
-};
-
-    const loadClientBookings = useCallback(async (clientId) => {
-  try {
-    if (!clientId) return;
-
-    const response = await fetch(buildApiUrl(`/bookings/by-client/${clientId}`));
-    const data = await response.json();
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Erreur chargement réservations client");
-    }
-
-    setClientBookings(data.bookings || []);
-  } catch (error) {
-    console.error("Erreur chargement réservations client :", error);
-  }
-}, []);   
-
-const clientPoints = Number(client?.points || 0);
-const clientVisits = Number(client?.visits || 0);
-const clientRewards = Number(client?.rewardsAvailable || 0);
-const rewardGoal = Number(selectedBusiness?.rewardGoal || 10);
-
-const clientProgress = rewardGoal > 0 ? (clientPoints / rewardGoal) * 100 : 0;
-
-const cyclePoints = rewardGoal > 0 ? clientPoints % rewardGoal : 0;
-
-const clientRewardRemaining =
-  rewardGoal <= 0
-    ? 0
-    : clientPoints > 0 && cyclePoints === 0
-    ? 0
-    : rewardGoal - cyclePoints;
-
-const rewardAvailable = clientRewards > 0 || clientPoints >= rewardGoal;
-
-useEffect(() => {
-  if (clientData?.id) {
-    loadClientBookings(clientData.id);
-  }
-}, [clientData?.id, loadClientBookings]);
-
-const createClient = async () => {
-  const cleanName = name.trim();
-  const cleanEmail = email.trim().toLowerCase();
-  const cleanPhone = phone.trim();
-
-  if (!cleanName || (!cleanEmail && !cleanPhone)) {
-    alert("Merci de renseigner un nom et au moins un email ou un téléphone.");
-    return;
-  }
-
-  try {
-    const response = await fetch(buildApiUrl("/clients"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: cleanName,
-        email: cleanEmail,
-        phone: cleanPhone,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.ok || !data.client) {
-      throw new Error(data.error || "Erreur création client");
-    }
-
-    setClientData(data.client);
-
-    window.history.replaceState(
-      null,
-      "",
-      `/card/${data.client.loyaltyId || data.client.id}`
-    );
-
-    setName("");
-    setEmail("");
-    setPhone("");
-
-    alert(data.created ? "Carte fidélité créée ✅" : "Carte fidélité retrouvée ✅");
-  } catch (error) {
-    console.error("Erreur création carte :", error);
-    alert("Erreur création carte fidélité");
-  }
-};
 
   const currentCardId = window.location.pathname.split("/card/")[1];
 
-const cardUrl = `https://zeltyo-clients.netlify.app/card/${
-  currentCardId || client?.loyaltyId || client?.id
-}`;
-  console.log("cardUrl =", cardUrl);
-  console.log("clientData =", clientData);
-console.log("clientPoints =", clientPoints);
+  const cardUrl = `https://zeltyo-clients.netlify.app/card/${
+    currentCardId || client?.loyaltyId || client?.id
+  }`;
 
   const saveClientSubscription = async (newSubscriptionId) => {
     try {
-      console.log("Envoi au backend...");
       const response = await fetch(buildApiUrl("/clients/register-subscription"), {
         method: "POST",
         headers: {
@@ -590,23 +585,19 @@ console.log("clientPoints =", clientPoints);
 
   const handleEnableNotifications = async () => {
     try {
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+
+      if (isLocalhost) {
+        alert(
+          "OneSignal n'est pas disponible en localhost avec votre configuration actuelle. Testez cette fonction sur Netlify."
+        );
+        return;
+      }
+
       await initOneSignal();
       const status = await enableOneSignalNotifications();
-
-      const isLocalhost =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-
-if (isLocalhost) {
-  alert("OneSignal n'est pas disponible en localhost avec votre configuration actuelle. Testez cette fonction sur Netlify.");
-  return;
-}
-
-      console.log("Permission OneSignal :", status.permission);
-      console.log("OneSignal optedIn :", status.optedIn);
-      console.log("OneSignal subscriptionId :", status.subscriptionId);
-      console.log("OneSignal token :", status.token);
-      console.log("DeferredPrompt =", deferredPrompt);
 
       setOneSignalReady(true);
       setPermission(Boolean(status.permission));
@@ -629,17 +620,6 @@ if (isLocalhost) {
     }
   };
 
-   const visibleOfferCards = useMemo(() => {
-    const list = filteredOffers.filter((o) => o.id !== featuredOffer?.id);
-    return showAllOffers ? list : list.slice(0, 4);
-  }, [filteredOffers, featuredOffer, showAllOffers]);
-
-  const hiddenOffersCount = Math.max(
-    filteredOffers.filter((o) => o.id !== featuredOffer?.id).length -
-      visibleOfferCards.length,
-    0
-  );
-
   useEffect(() => {
     const existingStyle = document.getElementById("zeltyo-client-animations");
     if (existingStyle) return;
@@ -659,7 +639,6 @@ if (isLocalhost) {
     document.head.appendChild(style);
   }, []);
 
-
   return (
     <div
       style={{
@@ -672,21 +651,35 @@ if (isLocalhost) {
       }}
     >
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        
-          
- <TopNavSection
-  COLORS={COLORS}
-  selectedBusiness={selectedBusiness}
-  copperButtonSmall={copperButtonSmall}
-  ghostButtonSmall={ghostButtonSmall}
-  reviewButton={reviewButton}
-/>
-       <HeroSection
-  COLORS={COLORS}
-  menuImage={menuImage}
-  menuItems={menuItems}
-/>
+       
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16 }}>
+  {[
+    ["offers", "Offres"],
+    ["booking", "Réserver"],
+    ["loyalty", "Fidélité"],
+    ["commerce", "Commerce"],
+    ["cards", "Mes cartes"],
+  ].map(([key, label]) => (
+    <button
+      key={key}
+      onClick={() => setActiveTab(key)}
+      style={{
+        padding: "10px 14px",
+        borderRadius: 999,
+        border: "1px solid #2A2A2A",
+        background: activeTab === key ? "#F2A65A" : "#111",
+        color: activeTab === key ? "#111" : "#fff",
+        fontWeight: 900,
+      }}
+    >
+      {label}
+    </button>
+  ))}
+</div>
 
+        <HeroSection COLORS={COLORS} menuImage={menuImage} menuItems={menuItems} />
+
+        <section style={{ marginBottom: 18 }}>
           <h1
             style={{
               margin: "0 0 8px 0",
@@ -731,119 +724,179 @@ if (isLocalhost) {
 
             <button
               onClick={() =>
-                alert("Mes cartes arrive bientôt ✅\nVous pourrez retrouver toutes vos cartes fidélité ici.")
+                alert(
+                  "Mes cartes arrive bientôt ✅\nVous pourrez retrouver toutes vos cartes fidélité ici."
+                )
               }
               style={copperButton()}
             >
               💳 Voir mes cartes
             </button>
           </div>
-        </div>
+        </section>
 
-        <GeoSection
-  COLORS={COLORS}
-  locationMode={locationMode}
-  setLocationMode={setLocationMode}
-  requestUserLocation={requestUserLocation}
-  geoState={geoState}
-  selectedBusiness={selectedBusiness}
-  selectedBusinessDistance={selectedBusinessDistance}
-  getDistanceLabel={getDistanceLabel}
-  copperButton={copperButton}
-  ghostButton={ghostButton}
-  ZoneLine={ZoneLine}
-/>
-          
-                <OffersSection
-          COLORS={COLORS}
-          featuredOffer={featuredOffer}
-          filteredOffers={filteredOffers}
-          visibleOfferCards={visibleOfferCards}
-          hiddenOffersCount={hiddenOffersCount}
-          showAllOffers={showAllOffers}
-          setShowAllOffers={setShowAllOffers}
-          offerFilter={offerFilter}
-          setOfferFilter={setOfferFilter}
-          getOfferBadge={getOfferBadge}
-          getOfferUrgencyLabel={getOfferUrgencyLabel}
-          getDistanceLabel={getDistanceLabel}
-          copperButton={copperButton}
-          ghostButton={ghostButton}
-        />
-
-        <BusinessZoneSection
-  COLORS={COLORS}
-  selectedBusiness={selectedBusiness}
-  inputStyle={inputStyle}
-  ZoneLine={ZoneLine}
-/>
-<CreateCardSection
-  COLORS={COLORS}
-  name={name}
-  setName={setName}
-  email={email}
-  setEmail={setEmail}
-  phone={phone}
-  setPhone={setPhone}
-  createClient={createClient}
-  inputStyle={inputStyle}
-  copperButton={copperButton}
-/>
-<BookingForm
-  selectedBusiness={{
-    ...selectedBusiness,
-    id: "BUS-2",
-    menu: menuItems,
-    phone: merchantContact?.phone || "",
+    <div
+  style={{
+    display: "flex",
+    gap: 8,
+    overflowX: "auto",
+    marginBottom: 18,
+    paddingBottom: 4,
   }}
-  clientData={client}
-/>
+>
+  {[
+    ["offers", "Offres"],
+    ["booking", "Réserver"],
+    ["loyalty", "Fidélité"],
+    ["commerce", "Commerce"],
+    ["cards", "Mes cartes"],
+  ].map(([key, label]) => (
+    <button
+      key={key}
+      onClick={() => setActiveTab(key)}
+      style={{
+        padding: "10px 14px",
+        borderRadius: 999,
+        border: "1px solid #2A2A2A",
+        background:
+          activeTab === key
+            ? "linear-gradient(135deg,#D97A32,#F2A65A)"
+            : "#111111",
+        color: activeTab === key ? "#111111" : "#F7F4EA",
+        fontWeight: 900,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  ))}
+</div>    
 
-<ClientBookingsSection
-  COLORS={COLORS}
-  clientBookings={clientBookings}
-/>
+ {activeTab === "offers" && (
+  <>
+    <GeoSection
+      COLORS={COLORS}
+      locationMode={locationMode}
+      setLocationMode={setLocationMode}
+      requestUserLocation={requestUserLocation}
+      geoState={geoState}
+      selectedBusiness={selectedBusiness}
+      selectedBusinessDistance={selectedBusinessDistance}
+      getDistanceLabel={getDistanceLabel}
+      copperButton={copperButton}
+      ghostButton={ghostButton}
+      ZoneLine={ZoneLine}
+    />
 
-       <LoyaltyCardSection
-  COLORS={COLORS}
-  selectedBusiness={selectedBusiness}
-  selectedBusinessDistance={selectedBusinessDistance}
-  formatDistance={formatDistance}
-  cardUrl={cardUrl}
-  client={client}
-  clientPoints={clientPoints}
-  rewardGoal={rewardGoal}
-  clientProgress={clientProgress}
-  clientRewardRemaining={clientRewardRemaining}
-  rewardAvailable={rewardAvailable}
-  InfoCard={InfoCard}
-  MiniStat={MiniStat}
-/>
-    <NotificationsSection
-  COLORS={COLORS}
-  deferredPrompt={deferredPrompt}
-  setDeferredPrompt={setDeferredPrompt}
-  oneSignalReady={oneSignalReady}
-  permission={permission}
-  optedIn={optedIn}
-  subscriptionId={subscriptionId}
-  handleEnableNotifications={handleEnableNotifications}
-  copperButton={copperButton}
-  ghostButton={ghostButton}
-  PremiumStatusCard={PremiumStatusCard}
-/>
-                  
-        <CommerceSection
-          COLORS={COLORS}
-          selectedBusiness={selectedBusiness}
-          selectedBusinessDistance={selectedBusinessDistance}
-          formatDistance={formatDistance}
-          copperButton={copperButton}
-          ghostButton={ghostButton}
-          reviewButton={reviewButton}
-        />
+    <OffersSection
+      COLORS={COLORS}
+      featuredOffer={featuredOffer}
+      filteredOffers={filteredOffers}
+      visibleOfferCards={visibleOfferCards}
+      hiddenOffersCount={hiddenOffersCount}
+      showAllOffers={showAllOffers}
+      setShowAllOffers={setShowAllOffers}
+      offerFilter={offerFilter}
+      setOfferFilter={setOfferFilter}
+      getOfferBadge={getOfferBadge}
+      getOfferUrgencyLabel={getOfferUrgencyLabel}
+      getDistanceLabel={getDistanceLabel}
+      copperButton={copperButton}
+      ghostButton={ghostButton}
+    />
+  </>
+)}
+
+{activeTab === "booking" && (
+  <>
+    <CreateCardSection
+      COLORS={COLORS}
+      name={name}
+      setName={setName}
+      email={email}
+      setEmail={setEmail}
+      phone={phone}
+      setPhone={setPhone}
+      createClient={createClient}
+      inputStyle={inputStyle}
+      copperButton={copperButton}
+    />
+
+    <BookingForm
+      selectedBusiness={{
+        ...selectedBusiness,
+        id: "BUS-2",
+        menu: menuItems,
+        phone: merchantContact?.phone || "",
+      }}
+      clientData={client}
+    />
+
+    <ClientBookingsSection
+      COLORS={COLORS}
+      clientBookings={clientBookings}
+    />
+  </>
+)}
+
+{activeTab === "loyalty" && (
+  <LoyaltyCardSection
+    COLORS={COLORS}
+    selectedBusiness={selectedBusiness}
+    selectedBusinessDistance={selectedBusinessDistance}
+    formatDistance={formatDistance}
+    cardUrl={cardUrl}
+    client={client}
+    clientPoints={clientPoints}
+    rewardGoal={rewardGoal}
+    clientProgress={clientProgress}
+    clientRewardRemaining={clientRewardRemaining}
+    rewardAvailable={rewardAvailable}
+    InfoCard={InfoCard}
+    MiniStat={MiniStat}
+  />
+)}
+
+{activeTab === "commerce" && (
+  <>
+    <BusinessZoneSection
+      COLORS={COLORS}
+      selectedBusiness={selectedBusiness}
+      inputStyle={inputStyle}
+      ZoneLine={ZoneLine}
+    />
+
+    <CommerceSection
+      COLORS={COLORS}
+      selectedBusiness={selectedBusiness}
+      selectedBusinessDistance={selectedBusinessDistance}
+      formatDistance={formatDistance}
+      copperButton={copperButton}
+      ghostButton={ghostButton}
+      reviewButton={reviewButton}
+    />
+  </>
+)}
+
+{activeTab === "cards" && (
+  <NotificationsSection
+    COLORS={COLORS}
+    deferredPrompt={deferredPrompt}
+    setDeferredPrompt={setDeferredPrompt}
+    oneSignalReady={oneSignalReady}
+    permission={permission}
+    optedIn={optedIn}
+    subscriptionId={subscriptionId}
+    handleEnableNotifications={handleEnableNotifications}
+    copperButton={copperButton}
+    ghostButton={ghostButton}
+    PremiumStatusCard={PremiumStatusCard}
+  />
+)}
       </div>
-      );
+    </div>
+  );
 }
 
 function inputStyle() {
@@ -952,6 +1005,7 @@ function InfoCard({ label, value, accent }) {
       >
         {label}
       </div>
+
       <div
         style={{
           fontSize: 18,
@@ -988,6 +1042,7 @@ function MiniStat({ label, value }) {
       >
         {label}
       </div>
+
       <div
         style={{
           fontSize: 16,

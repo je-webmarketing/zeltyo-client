@@ -25,87 +25,81 @@ export default function ClientBookingsSection({
       </h3>
 
       {clientBookings.length === 0 ? (
-        <p style={{ color: COLORS.textSoft }}>
-          Aucune réponse de réservation pour le moment.
-        </p>
-      ) : (
-        <div style={{ display: "grid", gap: 12 }}>
-          {clientBookings.map((booking) => {
-            const statusLabel =
-              booking.status === "pending"
-                ? "En attente"
-                : booking.status === "confirmed"
-                ? "Confirmée"
-                : booking.status === "cancelled"
-                ? "Refusée"
-                : booking.status;
+  <p style={{ color: "#CFC7B0" }}>
+    Aucune réponse de réservation pour le moment.
+  </p>
+) : (
+  <div style={{ display: "grid", gap: 12 }}>
+    {clientBookings.map((booking) => {
+      const statusLabel =
+        booking.status === "confirmed"
+          ? "Confirmée"
+          : booking.status === "cancelled"
+          ? "Refusée"
+          : "En attente";
 
-            return (
-              <div
-                key={booking.id}
-                style={{
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 16,
-                  padding: 14,
-                  background: COLORS.surfaceSoft,
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 800,
-                    color: COLORS.text,
-                    marginBottom: 6,
-                  }}
-                >
-                  Demande du {booking.date} à {booking.time}
-                </div>
+      const statusColor =
+        booking.status === "confirmed"
+          ? "#22c55e"
+          : booking.status === "cancelled"
+          ? "#ef4444"
+          : "#F2A65A";
 
-                <div
-                  style={{
-                    color:
-                      booking.status === "pending"
-                        ? COLORS.copperLight
-                        : booking.status === "confirmed"
-                        ? COLORS.success
-                        : COLORS.redLight,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  Statut : {statusLabel}
-                </div>
+      return (
+        <div
+          key={booking.id}
+          style={{
+            border: "1px solid #2A2A2A",
+            borderRadius: 16,
+            padding: 14,
+            background: "#161616",
+          }}
+        >
+          <div
+            style={{
+              color: "#F2D06B",
+              fontWeight: 800,
+              marginBottom: 6,
+            }}
+          >
+            Réservation du {booking.date} à {booking.time}
+          </div>
 
-                {booking.merchantResponse ? (
-                  <div style={{ color: COLORS.textSoft, marginBottom: 6 }}>
-                    Réponse du commerçant :{" "}
-                    <strong style={{ color: COLORS.text }}>
-                      {booking.merchantResponse}
-                    </strong>
-                  </div>
-                ) : null}
+          <div
+            style={{
+              color: statusColor,
+              fontWeight: 900,
+              marginBottom: 8,
+            }}
+          >
+            Statut : {statusLabel}
+          </div>
 
-                {booking.proposedDate || booking.proposedTime ? (
-                  <div style={{ color: COLORS.textSoft, marginBottom: 6 }}>
-                    Nouveau créneau proposé :{" "}
-                    <strong style={{ color: COLORS.text }}>
-                      {booking.proposedDate || "-"}{" "}
-                      {booking.proposedTime
-                        ? `à ${booking.proposedTime}`
-                        : ""}
-                    </strong>
-                  </div>
-                ) : null}
+          {booking.merchantResponse ? (
+            <div style={{ color: "#F7F4EA" }}>
+              Message commerçant : {booking.merchantResponse}
+            </div>
+          ) : null}
 
-                {booking.note ? (
-                  <div style={{ color: COLORS.textSoft }}>
-                    Votre note : {booking.note}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+          {booking.proposedDate || booking.proposedTime ? (
+            <div
+              style={{
+                color: "#CFC7B0",
+                marginTop: 6,
+              }}
+            >
+              Nouveau créneau :
+              {" "}
+              {booking.proposedDate}
+              {" "}
+              {booking.proposedTime}
+            </div>
+          ) : null}
         </div>
-      )}
+      );
+    })}
+  </div>
+)}
     </div>
   );
 }

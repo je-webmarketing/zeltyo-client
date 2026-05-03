@@ -1,4 +1,4 @@
-const API_BASE = "https://zeltyo-backend.onrender.com";
+const API_BASE = "http://localhost:3001";
 
 export function buildApiUrl(path) {
   return `${API_BASE}${path}`;

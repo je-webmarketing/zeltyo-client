@@ -12,6 +12,7 @@ import automationSegmentedRouter, {
 import { sendPush } from "./services/onesignal.js";
 import notificationsAdvanced from "./routes/notificationsAdvanced.js";
 import authRoutes from "./routes/auth.js";
+import { purgeOldBookings } from "./services/bookingStore.js";
 
 dotenv.config();
 
@@ -104,3 +105,11 @@ cron.schedule("0 10 * * *", async () => {
 app.listen(port, () => {
   console.log(`✅ Backend lancé sur le port ${port}`);
 });
+
+setInterval(async () => {
+  try {
+    await purgeOldBookings();
+  } catch (error) {
+    console.error("Erreur purge bookings :", error);
+  }
+}, 1000 * 60 * 10);
