@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "http://localhost:3001";
+import { buildApiUrl } from "../config/api";
 
 const BUSINESS = {
   name: "Zeltyo Coffee",

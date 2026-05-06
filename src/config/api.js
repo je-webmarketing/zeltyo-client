@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3001";
+import { buildApiUrl } from "../config/api";
 
 export function buildApiUrl(path) {
   return `${API_BASE}${path}`;
