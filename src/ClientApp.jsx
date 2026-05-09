@@ -317,7 +317,9 @@ export default function ClientApp() {
       ? `https://www.google.com/maps?q=${lat},${lng}`
       : `https://www.google.com/maps/search/?api=1&query=${businessQuery}`;
 
-    const reviewUrl = `https://www.google.com/search?q=${businessQuery}`;
+    const reviewUrl =
+  merchantContact?.reviewUrl ||
+  `https://www.google.com/search?q=${businessQuery}`;
 
     return {
       id: programSettings?.businessId || "BUS-DYNAMIC",
