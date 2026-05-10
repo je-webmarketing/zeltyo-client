@@ -161,19 +161,46 @@ export default function ClientApp() {
     return () => clearInterval(interval);
   }, [loadClientFromBackend]);
 
-  useEffect(() => {
+ useEffect(() => {
+  async function loadMerchantData() {
     try {
       const rawMerchantContact = localStorage.getItem(STORAGE_MERCHANT_CONTACT);
       const rawProgramSettings = localStorage.getItem(STORAGE_PROGRAM_SETTINGS);
       const rawPromotions = localStorage.getItem(STORAGE_PROMOTIONS);
 
-      if (rawMerchantContact) setMerchantContact(JSON.parse(rawMerchantContact));
-      if (rawProgramSettings) setProgramSettings(JSON.parse(rawProgramSettings));
-      if (rawPromotions) setMerchantPromotions(JSON.parse(rawPromotions));
+      if (rawMerchantContact) {
+        setMerchantContact(JSON.parse(rawMerchantContact));
+      }
+
+      if (rawProgramSettings) {
+        setProgramSettings(JSON.parse(rawProgramSettings));
+      }
+
+      // fallback local
+      if (rawPromotions) {
+        setMerchantPromotions(JSON.parse(rawPromotions));
+      }
+
+      // backend partagé
+      const response = await fetch(
+        buildApiUrl("/promotions/public/BUS-2")
+      );
+
+      const data = await response.json();
+
+      if (data.ok && Array.isArray(data.promotions)) {
+        setMerchantPromotions(data.promotions);
+      }
     } catch (error) {
-      console.error("Erreur lecture données commerçant côté client :", error);
+      console.error(
+        "Erreur lecture données commerçant côté client :",
+        error
+      );
     }
-  }, []);
+  }
+
+  loadMerchantData();
+}, []);
 
   const requestUserLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
