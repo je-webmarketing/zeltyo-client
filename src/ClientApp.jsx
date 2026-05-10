@@ -188,9 +188,9 @@ export default function ClientApp() {
 
       const data = await response.json();
 
-      if (data.ok && Array.isArray(data.promotions)) {
-        setMerchantPromotions(data.promotions);
-      }
+     if (data.ok && Array.isArray(data.promotions)) {
+  setMerchantPromotions(data.promotions);
+}
     } catch (error) {
       console.error(
         "Erreur lecture données commerçant côté client :",
@@ -311,9 +311,10 @@ export default function ClientApp() {
   const dynamicBusiness = useMemo(() => {
     if (!merchantContact && !programSettings) return null;
 
-    const activePromotions = merchantPromotions.filter(
-      (p) => p.status === "Active"
-    );
+    const activePromotions = merchantPromotions.filter((p) => {
+  const status = String(p.status || "").toLowerCase();
+  return status === "active" || status === "actif" || status === "";
+});
 
     const name = merchantContact?.shopName || "Mon Commerce";
     const address = merchantContact?.address || "";
@@ -379,7 +380,7 @@ export default function ClientApp() {
         limited: false,
         ctaLabel: promo.ctaLabel || "",
         ctaUrl: promo.ctaUrl || "",
-        businessId: "BUS-DYNAMIC",
+       businessId: promo.businessId || programSettings?.businessId || "BUS-2",
         businessName: name,
         city,
         zoneLabel: programSettings?.locationSettings?.zoneLabel || "",
@@ -480,7 +481,7 @@ const endpoint = isPhone
 
 const response = await fetch(buildApiUrl(endpoint));
       const data = await response.json();
-
+console.log("PROMOTIONS DATA CLIENT =", data);
       if (!response.ok || !data.ok) {
         throw new Error(data.error || "Erreur chargement réservations client");
       }
