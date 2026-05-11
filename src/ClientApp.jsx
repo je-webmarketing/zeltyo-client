@@ -188,6 +188,8 @@ export default function ClientApp() {
 
       const data = await response.json();
 
+     console.log("PROMOTIONS DATA CLIENT =", data); 
+
      if (data.ok && Array.isArray(data.promotions)) {
   setMerchantPromotions(data.promotions);
 }
@@ -481,7 +483,7 @@ const endpoint = isPhone
 
 const response = await fetch(buildApiUrl(endpoint));
       const data = await response.json();
-console.log("PROMOTIONS DATA CLIENT =", data);
+console.log("BOOKINGS DATA CLIENT =", data);
       if (!response.ok || !data.ok) {
         throw new Error(data.error || "Erreur chargement réservations client");
       }
