@@ -28,7 +28,7 @@ export default function BusinessZoneSection({
       </label>
 
       <div style={inputStyle()}>
-        {selectedBusiness.country || "Non renseigné"}
+        {selectedBusiness.country || "France"}
       </div>
 
       <label
@@ -45,7 +45,7 @@ export default function BusinessZoneSection({
       </label>
 
       <div style={inputStyle()}>
-        {selectedBusiness.city || "Non renseigné"}
+        {selectedBusiness.city || "Montpellier"}
       </div>
 
       <label
@@ -62,7 +62,7 @@ export default function BusinessZoneSection({
       </label>
 
       <div style={inputStyle()}>
-        {selectedBusiness.zoneLabel || "Zone non renseignée"}
+        {selectedBusiness.zoneLabel || "Antigone"}
       </div>
 
       <div
