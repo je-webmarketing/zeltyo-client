@@ -122,6 +122,7 @@ export default function ClientApp() {
   const [clientBookings, setClientBookings] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [menuImage, setMenuImage] = useState("");
+  const [clientCard, setClientCard] = useState(null);
 
   const [geoState, setGeoState] = useState({
     loading: false,
@@ -166,33 +167,44 @@ export default function ClientApp() {
     try {
       const rawMerchantContact = localStorage.getItem(STORAGE_MERCHANT_CONTACT);
       const rawProgramSettings = localStorage.getItem(STORAGE_PROGRAM_SETTINGS);
-      const rawPromotions = localStorage.getItem(STORAGE_PROMOTIONS);
+      
 
-      if (rawMerchantContact) {
-        setMerchantContact(JSON.parse(rawMerchantContact));
-      }
+ const parsedMerchantContact = rawMerchantContact
+  ? JSON.parse(rawMerchantContact)
+  : null;
 
-      if (rawProgramSettings) {
-        setProgramSettings(JSON.parse(rawProgramSettings));
-      }
+const parsedProgramSettings = rawProgramSettings
+  ? JSON.parse(rawProgramSettings)
+  : null;
 
-      // fallback local
-      if (rawPromotions) {
-        setMerchantPromotions(JSON.parse(rawPromotions));
-      }
-
-      // backend partagé
-      const response = await fetch(
-        buildApiUrl("/promotions/public/BUS-2")
-      );
-
-      const data = await response.json();
-
-     console.log("PROMOTIONS DATA CLIENT =", data); 
-
-     if (data.ok && Array.isArray(data.promotions)) {
-  setMerchantPromotions(data.promotions);
+if (parsedMerchantContact) {
+  setMerchantContact(parsedMerchantContact);
 }
+
+if (parsedProgramSettings) {
+  setProgramSettings(parsedProgramSettings);
+}
+
+const businessId =
+  parsedProgramSettings?.businessId ||
+  parsedMerchantContact?.businessId ||
+  "BUS-2";
+
+const response = await fetch(
+  buildApiUrl(`/promotions/public/${businessId}`)
+);
+
+const data = await response.json();
+
+console.log("PROMOTIONS DATA CLIENT =", data);
+
+if (response.ok && data.ok && Array.isArray(data.promotions)) {
+  setMerchantPromotions(data.promotions);
+  return;
+}
+
+console.warn("Promotions publiques non chargées :", data);
+setMerchantPromotions([]);
     } catch (error) {
       console.error(
         "Erreur lecture données commerçant côté client :",
@@ -313,9 +325,12 @@ export default function ClientApp() {
   const dynamicBusiness = useMemo(() => {
     if (!merchantContact && !programSettings) return null;
 
-    const activePromotions = merchantPromotions.filter((p) => {
+ const activePromotions = merchantPromotions.filter((p) => {
   const status = String(p.status || "").toLowerCase();
-  return status === "active" || status === "actif" || status === "";
+  const validUntil = p.validUntil ? new Date(p.validUntil) : null;
+  const isExpired = validUntil && validUntil < new Date();
+
+  return !isExpired && (status === "active" || status === "actif" || status === "");
 });
 
     const name = merchantContact?.shopName || "Mon Commerce";
@@ -487,6 +502,18 @@ console.log("BOOKINGS DATA CLIENT =", data);
       if (!response.ok || !data.ok) {
         throw new Error(data.error || "Erreur chargement réservations client");
       }
+
+      const clientResponse = await fetch(
+  buildApiUrl(`/clients/by-loyalty/${clientId}`)
+);
+
+const clientData = await clientResponse.json();
+
+console.log("CLIENT FIDELITY DATA =", clientData);
+
+if (clientData.ok && clientData.client) {
+  setClientCard(clientData.client);
+}
 
       setClientBookings(data.bookings || []);
     } catch (error) {
