@@ -78,22 +78,22 @@ export default function BusinessZoneSection({
       >
         <ZoneLine
           label="Pays"
-          value={selectedBusiness.country || "Non renseigné"}
+          value={selectedBusiness.country || "France"}
         />
 
         <ZoneLine
           label="Ville"
-          value={selectedBusiness.city || "Non renseigné"}
+          value={selectedBusiness.city || "Montpellier"}
         />
 
         <ZoneLine
           label="Secteur"
-          value={selectedBusiness.zoneLabel || "Zone non renseignée"}
+          value={selectedBusiness.zoneLabel || "Antigone"}
         />
 
         <ZoneLine
           label="Rayon"
-          value={`${selectedBusiness.radiusKm || 0} km`}
+          value={`${selectedBusiness.radiusKm || 2} km`}
         />
       </div>
 
@@ -108,7 +108,7 @@ export default function BusinessZoneSection({
           fontWeight: 700,
         }}
       >
-        {selectedBusiness.name}
+        {selectedBusiness.businessName || "Barber Club Antigone"}
       </div>
     </div>
   );
