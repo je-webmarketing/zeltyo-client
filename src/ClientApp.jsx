@@ -462,6 +462,12 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
 
   const nearbyOffers = selectedBusiness?.offers || [];
 
+  console.log("SELECTED BUSINESS =", selectedBusiness);
+console.log("DYNAMIC BUSINESS =", dynamicBusiness);
+console.log("API BUSINESS =", apiBusiness);
+console.log("NEARBY OFFERS =", nearbyOffers);
+console.log("MERCHANT PROMOTIONS =", merchantPromotions);
+
 const filteredOffers = useMemo(() => {
   if (!Array.isArray(nearbyOffers)) return [];
 
