@@ -70,6 +70,7 @@ export default function OffersSection({
           getDistanceLabel={getDistanceLabel}
           copperButton={copperButton}
           ghostButton={ghostButton}
+          onViewCommerce={onViewCommerce}
         />
       ) : null}
 
@@ -142,6 +143,7 @@ export default function OffersSection({
               getDistanceLabel={getDistanceLabel}
               copperButton={copperButton}
               ghostButton={ghostButton}
+              onViewCommerce={onViewCommerce}
             />
           ))
         )}
@@ -170,6 +172,7 @@ function FeaturedOfferCard({
   getDistanceLabel,
   copperButton,
   ghostButton,
+  onViewCommerce,
 }) {
   return (
     <div
@@ -289,6 +292,7 @@ function OfferCard({
   getDistanceLabel,
   copperButton,
   ghostButton,
+  onViewCommerce,
 }) {
   return (
     <div
