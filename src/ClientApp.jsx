@@ -439,9 +439,14 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
     };
   }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
 
-  const selectedBusiness = apiBusiness || dynamicBusiness || {
-    offers: [],
-  };
+  const selectedBusiness = {
+  ...(dynamicBusiness || {}),
+  ...(apiBusiness || {}),
+  offers:
+    dynamicBusiness?.offers?.length > 0
+      ? dynamicBusiness.offers
+      : apiBusiness?.offers || [],
+};
 
   const selectedBusinessDistance =
     geoState.coords &&
