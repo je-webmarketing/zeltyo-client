@@ -352,12 +352,14 @@ setMerchantPromotions([]);
     if (!merchantContact && !programSettings) return null;
 
  const activePromotions = merchantPromotions.filter((p) => {
+ console.log("CLIENT PROMOS RAW =", merchantPromotions); 
   const status = String(p.status || "").toLowerCase();
   const validUntil = p.validUntil ? new Date(p.validUntil) : null;
   const isExpired = validUntil && validUntil < new Date();
 
   return !isExpired && (status === "active" || status === "actif" || status === "");
 });
+console.log("CLIENT PROMOS ACTIVE =", activePromotions);
 
     const name = merchantContact?.shopName || "Mon Commerce";
     const address = merchantContact?.address || "";
@@ -456,9 +458,25 @@ setMerchantPromotions([]);
   const nearbyOffers = selectedBusiness?.offers || [];
 
   const filteredOffers = useMemo(() => {
-    if (offerFilter === "all") return nearbyOffers;
-    return nearbyOffers.filter((offer) => offer.type === offerFilter);
-  }, [nearbyOffers, offerFilter]);
+  if (!Array.isArray(offers)) return [];
+
+  // Aucun commerce sélectionné = afficher toutes les offres actives
+  if (!selectedBusiness?.id) {
+    return offers.filter((offer) => offer?.active !== false);
+  }
+
+  return offers.filter((offer) => {
+    const offerBusinessId =
+      offer.businessId ||
+      offer.business_id ||
+      offer.business?.id;
+
+    return (
+      offer?.active !== false &&
+      String(offerBusinessId) === String(selectedBusiness.id)
+    );
+  });
+}, [offers, selectedBusiness]);
 
   const featuredOffer = useMemo(() => {
     if (!nearbyOffers.length) return null;
