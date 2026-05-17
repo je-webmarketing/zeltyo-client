@@ -447,9 +447,9 @@ function OfferActions({
 }) {
   return (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-     <button
+ <button
   type="button"
-  onClick={onViewCommerce}
+  onClick={() => alert("clic commerce")}
   style={copperButton()}
 >
   Voir le commerce
