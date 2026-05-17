@@ -181,7 +181,7 @@ export default function LoyaltyCardSection({
             </div>
 
             <div style={{ color: COLORS.textSoft, lineHeight: 1.6 }}>
-              {selectedBusiness.zoneLabel || "Zone non renseignée"} • Rayon{" "}
+              {selectedBusiness?.zoneLabel || ""} • Rayon{" "}
               {selectedBusiness.radiusKm} km
             </div>
 

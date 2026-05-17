@@ -99,6 +99,32 @@ function getOfferUrgencyLabel(offer) {
 }
 
 export default function ClientApp() {
+  const [apiBusiness, setApiBusiness] = useState(null);
+
+useEffect(() => {
+  async function loadBusiness() {
+    try {
+      const res = await fetch("https://zeltyo-app.onrender.com/businesses/BUS-2");
+      const json = await res.json();
+
+      if (json.ok && json.business) {
+        setApiBusiness({
+          ...json.business,
+          lat: json.business.latitude,
+          lng: json.business.longitude,
+          address: `${json.business.city}, ${json.business.country}`,
+          googleMapsUrl: `https://www.google.com/maps?q=${json.business.latitude},${json.business.longitude}`,
+          offers: [],
+        });
+        console.log("API BUSINESS", json.business);
+      }
+    } catch (error) {
+      console.error("Erreur chargement commerce :", error);
+    }
+  }
+
+  loadBusiness();
+}, []);
   const [locationMode, setLocationMode] = useState("auto");
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
@@ -411,7 +437,7 @@ setMerchantPromotions([]);
     };
   }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
 
-  const selectedBusiness = dynamicBusiness || {
+  const selectedBusiness = apiBusiness || dynamicBusiness || {
     offers: [],
   };
 
