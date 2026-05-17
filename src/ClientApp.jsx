@@ -457,15 +457,14 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
 
   const nearbyOffers = selectedBusiness?.offers || [];
 
-  const filteredOffers = useMemo(() => {
-  if (!Array.isArray(offers)) return [];
+const filteredOffers = useMemo(() => {
+  if (!Array.isArray(OFFERS)) return [];
 
-  // Aucun commerce sélectionné = afficher toutes les offres actives
   if (!selectedBusiness?.id) {
-    return offers.filter((offer) => offer?.active !== false);
+    return OFFERS.filter((offer) => offer?.active !== false);
   }
 
-  return offers.filter((offer) => {
+  return OFFERS.filter((offer) => {
     const offerBusinessId =
       offer.businessId ||
       offer.business_id ||
@@ -476,7 +475,7 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
       String(offerBusinessId) === String(selectedBusiness.id)
     );
   });
-}, [offers, selectedBusiness]);
+}, [selectedBusiness]);
 
   const featuredOffer = useMemo(() => {
     if (!nearbyOffers.length) return null;
