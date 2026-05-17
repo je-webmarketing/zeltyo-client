@@ -13,6 +13,7 @@ export default function OffersSection({
   getDistanceLabel,
   copperButton,
   ghostButton,
+  onViewCommerce,
 }) {
   return (
     <div
@@ -41,7 +42,22 @@ export default function OffersSection({
         </h3>
 
         <a href="#commerce" style={{ textDecoration: "none" }}>
-          <button style={copperButton()}>Voir le commerce</button>
+          <button
+  type="button"
+  onClick={() => {
+    const commerceSection = document.getElementById("commerce-section");
+
+    if (commerceSection) {
+      commerceSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    alert("Ouvrez l’onglet Commerce pour voir les informations du commerce.");
+  }}
+  style={copperButton()}
+>
+  Voir le commerce
+</button>
         </a>
       </div>
 
@@ -253,7 +269,12 @@ function FeaturedOfferCard({
             {offer.discountLabel}
           </div>
 
-          <OfferActions offer={offer} copperButton={copperButton} ghostButton={ghostButton} />
+          <OfferActions
+  offer={offer}
+  copperButton={copperButton}
+  ghostButton={ghostButton}
+  onViewCommerce={onViewCommerce}
+/>
         </div>
       </div>
     </div>
@@ -342,7 +363,12 @@ function OfferCard({
           {offer.discountLabel}
         </div>
 
-        <OfferActions offer={offer} copperButton={copperButton} ghostButton={ghostButton} />
+        <OfferActions
+  offer={offer}
+  copperButton={copperButton}
+  ghostButton={ghostButton}
+  onViewCommerce={onViewCommerce}
+/>
       </div>
     </div>
   );
@@ -413,12 +439,21 @@ function OfferBadges({
   );
 }
 
-function OfferActions({ offer, copperButton, ghostButton }) {
+function OfferActions({
+  offer,
+  copperButton,
+  ghostButton,
+  onViewCommerce,
+}) {
   return (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      <a href="#commerce" style={{ textDecoration: "none" }}>
-        <button style={copperButton()}>Voir le commerce</button>
-      </a>
+     <button
+  type="button"
+  onClick={onViewCommerce}
+  style={copperButton()}
+>
+  Voir le commerce
+</button>
 
       <a href={offer.googleMapsUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
         <button style={ghostButton()}>Itinéraire</button>

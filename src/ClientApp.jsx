@@ -936,6 +936,7 @@ useEffect(() => {
       getDistanceLabel={getDistanceLabel}
       copperButton={copperButton}
       ghostButton={ghostButton}
+      onViewCommerce={() => setActiveTab("commerce")}
     />
   </>
 )}
@@ -991,7 +992,7 @@ useEffect(() => {
 )}
 
 {activeTab === "commerce" && (
-  <>
+  <div id="commerce-section">
     <BusinessZoneSection
       COLORS={COLORS}
       selectedBusiness={selectedBusiness}
@@ -1008,7 +1009,7 @@ useEffect(() => {
       ghostButton={ghostButton}
       reviewButton={reviewButton}
     />
-  </>
+  </div>
 )}
 
 {activeTab === "cards" && (
@@ -1027,7 +1028,7 @@ useEffect(() => {
   />
 )}
       </div>
-    </div>
+   
   );
 }
 
