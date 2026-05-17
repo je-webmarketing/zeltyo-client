@@ -41,24 +41,13 @@ export default function OffersSection({
           Offres autour de moi
         </h3>
 
-        <a href="#commerce" style={{ textDecoration: "none" }}>
-          <button
+        <button
   type="button"
-  onClick={() => {
-    const commerceSection = document.getElementById("commerce-section");
-
-    if (commerceSection) {
-      commerceSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    alert("Ouvrez l’onglet Commerce pour voir les informations du commerce.");
-  }}
+  onClick={onViewCommerce}
   style={copperButton()}
 >
   Voir le commerce
 </button>
-        </a>
       </div>
 
       {featuredOffer ? (
