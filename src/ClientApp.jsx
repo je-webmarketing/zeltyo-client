@@ -789,14 +789,9 @@ useEffect(() => {
     >
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
        
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16 }}>
+      
   {[
-    ["offers", "Offres"],
-    ["booking", "Réserver"],
-    ["loyalty", "Fidélité"],
-    ["commerce", "Commerce"],
-    ["cards", "Mes cartes"],
-  ].map(([key, label]) => (
+      ].map(([key, label]) => (
     <button
       key={key}
       onClick={() => setActiveTab(key)}
