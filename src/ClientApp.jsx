@@ -460,7 +460,35 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
         )
       : null;
 
-  const nearbyOffers = selectedBusiness?.offers || [];
+  const nearbyOffers = useMemo(() => {
+  if (Array.isArray(selectedBusiness?.offers) && selectedBusiness.offers.length > 0) {
+    return selectedBusiness.offers;
+  }
+
+  if (Array.isArray(merchantPromotions) && merchantPromotions.length > 0) {
+    return merchantPromotions.map((promo, index) => ({
+      id: promo.id || `PROMO-${index + 1}`,
+      title: promo.title || "Offre spéciale",
+      description: promo.description || "",
+      type: "flash",
+      discountLabel: promo.code || "Offre",
+      validToday: true,
+      limited: false,
+      ctaLabel: promo.ctaLabel || "",
+      ctaUrl: promo.ctaUrl || "",
+      businessId: promo.businessId || selectedBusiness?.id || "BUS-2",
+      businessName: selectedBusiness?.name || "Commerce",
+      city: selectedBusiness?.city || "",
+      zoneLabel: selectedBusiness?.zoneLabel || "",
+      googleMapsUrl: selectedBusiness?.googleMapsUrl || "",
+      distanceKm: selectedBusinessDistance || Infinity,
+      isNearby: true,
+      active: true,
+    }));
+  }
+
+  return [];
+}, [selectedBusiness, merchantPromotions, selectedBusinessDistance]);
 
   console.log("SELECTED BUSINESS =", selectedBusiness);
 console.log("DYNAMIC BUSINESS =", dynamicBusiness);
