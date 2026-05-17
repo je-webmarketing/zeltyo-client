@@ -465,22 +465,18 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
 const filteredOffers = useMemo(() => {
   if (!Array.isArray(nearbyOffers)) return [];
 
-  if (!selectedBusiness?.id) {
-    return nearbyOffers.filter((offer) => offer?.active !== false);
+  let list = nearbyOffers.filter((offer) => offer?.active !== false);
+
+  if (offerFilter === "flash") {
+    list = list.filter((offer) => offer.type === "flash");
   }
 
-  return nearbyOffers.filter((offer) => {
-    const offerBusinessId =
-      offer.businessId ||
-      offer.business_id ||
-      offer.business?.id;
+  if (offerFilter === "reward") {
+    list = list.filter((offer) => offer.type === "reward");
+  }
 
-    return (
-      offer?.active !== false &&
-      String(offerBusinessId) === String(selectedBusiness.id)
-    );
-  });
-}, [nearbyOffers, selectedBusiness]);
+  return list;
+}, [nearbyOffers, offerFilter]);
 
   const featuredOffer = useMemo(() => {
     if (!nearbyOffers.length) return null;
