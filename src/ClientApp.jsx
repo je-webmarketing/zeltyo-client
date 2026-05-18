@@ -23,6 +23,7 @@ const STORAGE_PROGRAM_SETTINGS = "zeltyo_program_settings";
 const STORAGE_PROMOTIONS = "zeltyo_promotions";
 const STORAGE_MENU = "zeltyo_menu";
 const STORAGE_MENU_IMAGE = "merchant_menu_image";
+const STORAGE_SELECTED_BUSINESS = "zeltyo_selected_business";
 
 const COLORS = {
   bg: "#050505",
@@ -157,7 +158,9 @@ useEffect(() => {
   });
 
   const [activeTab, setActiveTab] = useState("offers");
-  const [manualBusinessId, setManualBusinessId] = useState(null);
+  const [manualBusinessId, setManualBusinessId] = useState(() => {
+  return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || null;
+});
 
   const loadClientFromBackend = useCallback(async () => {
     const pathParts = window.location.pathname.split("/");
@@ -518,7 +521,7 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
   });
 
   return ranked[0];
-}, [businesses, geoState.coords]);
+ [businesses, geoState.coords]);
 
   const selectedBusinessDistance =
     geoState.coords &&
@@ -869,6 +872,15 @@ useEffect(() => {
     document.head.appendChild(style);
   }, []);
 
+  useEffect(() => {
+  if (manualBusinessId) {
+    localStorage.setItem(
+      STORAGE_SELECTED_BUSINESS,
+      manualBusinessId
+    );
+  }
+}, [manualBusinessId]);
+
   return (
     <div
       style={{
@@ -1205,7 +1217,7 @@ useEffect(() => {
       </div>
    
   );
-}
+
 
 function inputStyle() {
   return {
