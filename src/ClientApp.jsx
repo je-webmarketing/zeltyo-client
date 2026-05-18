@@ -149,7 +149,7 @@ useEffect(() => {
   const [menuItems, setMenuItems] = useState([]);
   const [menuImage, setMenuImage] = useState("");
   const [clientCard, setClientCard] = useState(null);
-
+  
   const [geoState, setGeoState] = useState({
     loading: false,
     error: "",
@@ -157,6 +157,7 @@ useEffect(() => {
   });
 
   const [activeTab, setActiveTab] = useState("offers");
+  const [manualBusinessId, setManualBusinessId] = useState(null);
 
   const loadClientFromBackend = useCallback(async () => {
     const pathParts = window.location.pathname.split("/");
@@ -456,14 +457,47 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
   return list;
 }, [apiBusiness, dynamicBusiness]); 
 
-  const selectedBusiness = useMemo(() => {
+ const selectedBusiness = useMemo(() => {
   if (!businesses.length) {
     return { offers: [] };
   }
 
+  // Sélection manuelle prioritaire
+  if (manualBusinessId) {
+    const manualBusiness = businesses.find(
+      (b) => String(b.id) === String(manualBusinessId)
+    );
+
+    if (manualBusiness) {
+      return manualBusiness;
+    }
+  }
+
+  // Sinon commerce le plus proche
   if (!geoState.coords) {
     return businesses[0];
   }
+
+  const ranked = [...businesses].sort((a, b) => {
+    const distanceA = getDistanceKm(
+      geoState.coords.lat,
+      geoState.coords.lng,
+      a.lat,
+      a.lng
+    );
+
+    const distanceB = getDistanceKm(
+      geoState.coords.lat,
+      geoState.coords.lng,
+      b.lat,
+      b.lng
+    );
+
+    return distanceA - distanceB;
+  });
+
+  return ranked[0];
+}, [businesses, geoState.coords, manualBusinessId]);
 
   const ranked = [...businesses].sort((a, b) => {
     const distanceA = getDistanceKm(
@@ -927,11 +961,13 @@ useEffect(() => {
           <button
             type="button"
             onClick={() => {
-              window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-              });
-            }}
+  setManualBusinessId(business.id);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}}
             style={
               selectedBusiness?.id === business.id
                 ? ghostButton()
