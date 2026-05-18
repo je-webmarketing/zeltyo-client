@@ -439,14 +439,52 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
     };
   }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
 
-  const selectedBusiness = {
-  ...(dynamicBusiness || {}),
-  ...(apiBusiness || {}),
-  offers:
-    dynamicBusiness?.offers?.length > 0
-      ? dynamicBusiness.offers
-      : apiBusiness?.offers || [],
-};
+ const businesses = useMemo(() => {
+  const list = [];
+
+  if (apiBusiness) {
+    list.push(apiBusiness);
+  }
+
+  if (
+    dynamicBusiness &&
+    !list.find((b) => String(b.id) === String(dynamicBusiness.id))
+  ) {
+    list.push(dynamicBusiness);
+  }
+
+  return list;
+}, [apiBusiness, dynamicBusiness]); 
+
+  const selectedBusiness = useMemo(() => {
+  if (!businesses.length) {
+    return { offers: [] };
+  }
+
+  if (!geoState.coords) {
+    return businesses[0];
+  }
+
+  const ranked = [...businesses].sort((a, b) => {
+    const distanceA = getDistanceKm(
+      geoState.coords.lat,
+      geoState.coords.lng,
+      a.lat,
+      a.lng
+    );
+
+    const distanceB = getDistanceKm(
+      geoState.coords.lat,
+      geoState.coords.lng,
+      b.lat,
+      b.lng
+    );
+
+    return distanceA - distanceB;
+  });
+
+  return ranked[0];
+}, [businesses, geoState.coords]);
 
   const selectedBusinessDistance =
     geoState.coords &&
