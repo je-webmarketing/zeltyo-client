@@ -498,6 +498,27 @@ console.log("CLIENT PROMOS ACTIVE =", activePromotions);
         )
       : null;
 
+  const nearbyBusinesses = useMemo(() => {
+  return businesses.map((business) => {
+    const distance =
+      geoState.coords &&
+      business?.lat != null &&
+      business?.lng != null
+        ? getDistanceKm(
+            geoState.coords.lat,
+            geoState.coords.lng,
+            business.lat,
+            business.lng
+          )
+        : Infinity;
+
+    return {
+      ...business,
+      distanceKm: distance,
+    };
+  });
+}, [businesses, geoState.coords]);
+
   const nearbyOffers = useMemo(() => {
   if (Array.isArray(selectedBusiness?.offers) && selectedBusiness.offers.length > 0) {
     return selectedBusiness.offers;
@@ -846,6 +867,86 @@ useEffect(() => {
     </button>
   ))}
 </div>
+{nearbyBusinesses.length > 1 && (
+  <div
+    style={{
+      display: "grid",
+      gap: 12,
+      marginBottom: 18,
+    }}
+  >
+    {nearbyBusinesses.map((business) => (
+      <div
+        key={business.id}
+        style={{
+          padding: 14,
+          borderRadius: 18,
+          background:
+            selectedBusiness?.id === business.id
+              ? "rgba(217,122,50,0.14)"
+              : COLORS.surface,
+          border:
+            selectedBusiness?.id === business.id
+              ? "1px solid rgba(217,122,50,0.35)"
+              : `1px solid ${COLORS.border}`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                color: COLORS.goldLight,
+                fontWeight: 800,
+                fontSize: 18,
+                marginBottom: 4,
+              }}
+            >
+              {business.name}
+            </div>
+
+            <div
+              style={{
+                color: COLORS.textSoft,
+                fontSize: 13,
+              }}
+            >
+              {Number.isFinite(business.distanceKm)
+                ? formatDistance(business.distanceKm)
+                : business.city}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              });
+            }}
+            style={
+              selectedBusiness?.id === business.id
+                ? ghostButton()
+                : copperButton()
+            }
+          >
+            {selectedBusiness?.id === business.id
+              ? "Commerce actif"
+              : "Choisir"}
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
 
         <HeroSection COLORS={COLORS} menuImage={menuImage} menuItems={menuItems} />
 
