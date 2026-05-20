@@ -121,7 +121,7 @@ function normalizePromotion(promo, fallback = {}) {
     limited: Boolean(promo?.limited),
     ctaLabel: promo?.ctaLabel || "",
     ctaUrl: promo?.ctaUrl || "",
-    businessId: promo?.businessId || fallback.businessId || "BUS-2",
+    businessId: promo?.businessId || fallback.businessId || "",
     businessName: fallback.businessName || promo?.businessName || "Commerce",
     city: fallback.city || promo?.city || "",
     zoneLabel: fallback.zoneLabel || promo?.zoneLabel || "",
@@ -178,10 +178,17 @@ export default function ClientApp() {
     return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || null;
   });
 
+  const activeBusinessId =
+  manualBusinessId ||
+  clientData?.businessId ||
+  programSettings?.businessId ||
+  merchantContact?.businessId ||
+  "";
+
   useEffect(() => {
     async function loadBusiness() {
       try {
-        const response = await fetch(buildApiUrl("/businesses/BUS-2"));
+        const response = await fetch(buildApiUrl(`/businesses/${activeBusinessId}`))
         const json = await response.json();
 
         if (response.ok && json.ok && json.business) {
@@ -191,7 +198,7 @@ export default function ClientApp() {
 
           setApiBusiness({
             ...business,
-            id: business.id || "BUS-2",
+            id: business.id || activeBusinessId || "",
             lat,
             lng,
             address:
@@ -214,7 +221,7 @@ export default function ClientApp() {
     }
 
     loadBusiness();
-  }, []);
+  }, [activeBusinessId]);
 
   const loadClientFromBackend = useCallback(async () => {
     const pathParts = window.location.pathname.split("/");
@@ -266,10 +273,11 @@ export default function ClientApp() {
           setProgramSettings(parsedProgramSettings);
         }
 
-        const businessId =
-          parsedProgramSettings?.businessId ||
-          parsedMerchantContact?.businessId ||
-          "BUS-2";
+       const businessId =
+  parsedProgramSettings?.businessId ||
+  parsedMerchantContact?.businessId ||
+  activeBusinessId ||
+  "";
 
         const response = await fetch(buildApiUrl(`/promotions/public/${businessId}`));
         const data = await response.json();
@@ -473,7 +481,11 @@ export default function ClientApp() {
     const reviewUrl =
       merchantContact?.reviewUrl || `https://www.google.com/search?q=${businessQuery}`;
 
-    const businessId = programSettings?.businessId || merchantContact?.businessId || "BUS-2";
+    const businessId =
+  programSettings?.businessId ||
+  merchantContact?.businessId ||
+  manualBusinessId ||
+  "";
     const zoneLabel = programSettings?.locationSettings?.zoneLabel || "";
     const distanceKm =
       geoState.coords && hasCoordinates
@@ -606,7 +618,7 @@ export default function ClientApp() {
       return selectedBusiness.offers.map((offer, index) =>
         normalizePromotion(offer, {
           id: `OFFER-${index + 1}`,
-          businessId: selectedBusiness?.id || "BUS-2",
+          businessId: selectedBusiness?.id || activeBusinessId || "",
           businessName: selectedBusiness?.name || "Commerce",
           city: selectedBusiness?.city || "",
           zoneLabel: selectedBusiness?.zoneLabel || "",
@@ -620,7 +632,7 @@ export default function ClientApp() {
       return merchantPromotions.filter(isPromotionActive).map((promo, index) =>
         normalizePromotion(promo, {
           id: `PROMO-${index + 1}`,
-          businessId: selectedBusiness?.id || "BUS-2",
+          businessId: selectedBusiness?.id || activeBusinessId || "",
           businessName: selectedBusiness?.name || "Commerce",
           city: selectedBusiness?.city || "",
           zoneLabel: selectedBusiness?.zoneLabel || "",
@@ -853,7 +865,7 @@ export default function ClientApp() {
           country: client.country,
           city: client.city,
           zoneId: client.zoneId,
-          businessId: selectedBusiness?.id || "BUS-2",
+          businessId: selectedBusiness?.id || activeBusinessId || "",
           region: client.region,
           zoneLabel: client.zoneLabel,
           radiusKm: client.radiusKm,
@@ -1145,7 +1157,7 @@ export default function ClientApp() {
             <BookingForm
               selectedBusiness={{
                 ...selectedBusiness,
-                id: selectedBusiness?.id || "BUS-2",
+                id: selectedBusiness?.id || activeBusinessId || "",
                 menu: menuItems,
                 phone: merchantContact?.phone || selectedBusiness?.phone || "",
               }}
