@@ -178,15 +178,20 @@ export default function ClientApp() {
     return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || null;
   });
 
-  const activeBusinessId =
+  const urlParams = new URLSearchParams(window.location.search);
+const businessIdFromUrl = urlParams.get("businessId");
+
+const activeBusinessId =
+  businessIdFromUrl ||
   manualBusinessId ||
   clientData?.businessId ||
   programSettings?.businessId ||
   merchantContact?.businessId ||
-  "";
+  "BUS-2";
 
   useEffect(() => {
     async function loadBusiness() {
+      if (!activeBusinessId) return;
       try {
         const response = await fetch(buildApiUrl(`/businesses/${activeBusinessId}`))
         const json = await response.json();
