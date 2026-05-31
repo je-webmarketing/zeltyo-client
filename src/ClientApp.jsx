@@ -22,6 +22,7 @@ const STORAGE_PROGRAM_SETTINGS = "zeltyo_program_settings";
 const STORAGE_MENU = "zeltyo_menu";
 const STORAGE_MENU_IMAGE = "merchant_menu_image";
 const STORAGE_SELECTED_BUSINESS = "zeltyo_selected_business";
+const STORAGE_SELECTED_ZONE = "zeltyo_selected_zone";
 
 const COLORS = {
   bg: "#050505",
@@ -141,7 +142,7 @@ function isPromotionActive(promo) {
 }
 
 export default function ClientApp() {
-  const [apiBusiness, setApiBusiness] = useState(null);
+  const [apiBusinesses, setApiBusinesses] = useState([]);
   const [locationMode, setLocationMode] = useState("auto");
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
@@ -166,7 +167,8 @@ export default function ClientApp() {
   const [menuItems, setMenuItems] = useState([]);
   const [menuImage, setMenuImage] = useState("");
   const [clientCard, setClientCard] = useState(null);
-
+  const [businessContents, setBusinessContents] = useState([]);
+ 
   const [geoState, setGeoState] = useState({
     loading: false,
     error: "",
@@ -175,35 +177,50 @@ export default function ClientApp() {
 
   const [activeTab, setActiveTab] = useState("offers");
   const [manualBusinessId, setManualBusinessId] = useState(() => {
-    return localStorage.getItem(STORAGE_SELECTED_BUSINESS) || null;
-  });
+  const saved = localStorage.getItem(STORAGE_SELECTED_BUSINESS);
+  return saved && saved.trim() ? saved : null;
+});
+const [manualCountry, setManualCountry] = useState("");
+const [manualCity, setManualCity] = useState("");
+const [manualZone, setManualZone] = useState("");
+const [manualRegion, setManualRegion] = useState("");
+const [favoriteDestinations, setFavoriteDestinations] = useState(() => {
+  const saved = localStorage.getItem("zeltyo_favorite_destinations");
+  return saved ? JSON.parse(saved) : [];
+});
+
+const [selectedZoneId, setSelectedZoneId] = useState(() => {
+  return localStorage.getItem(STORAGE_SELECTED_ZONE) || "";
+});
+
+useEffect(() => {
+  if (selectedZoneId) {
+    localStorage.setItem(STORAGE_SELECTED_ZONE, selectedZoneId);
+  }
+}, [selectedZoneId]);
 
   const urlParams = new URLSearchParams(window.location.search);
 const businessIdFromUrl = urlParams.get("businessId");
 
 const activeBusinessId =
-  businessIdFromUrl ||
-  manualBusinessId ||
   clientData?.businessId ||
-  programSettings?.businessId ||
-  merchantContact?.businessId ||
+  manualBusinessId ||
+  businessIdFromUrl ||
   "BUS-2";
 
   useEffect(() => {
-    async function loadBusiness() {
-      if (!activeBusinessId) return;
-      try {
-        const response = await fetch(buildApiUrl(`/businesses/${activeBusinessId}`))
-        const json = await response.json();
+  async function loadBusinesses() {
+    try {
+      const response = await fetch(buildApiUrl("/businesses"));
+      const json = await response.json();
 
-        if (response.ok && json.ok && json.business) {
-          const business = json.business;
+      if (response.ok && json.ok && Array.isArray(json.businesses)) {
+        const normalized = json.businesses.map((business) => {
           const lat = business.latitude != null ? Number(business.latitude) : null;
           const lng = business.longitude != null ? Number(business.longitude) : null;
 
-          setApiBusiness({
+          return {
             ...business,
-            id: business.id || activeBusinessId || "",
             lat,
             lng,
             address:
@@ -218,15 +235,19 @@ const activeBusinessId =
                       .join(", ")
                   )}`,
             offers: Array.isArray(business.offers) ? business.offers : [],
-          });
-        }
-      } catch (error) {
-        console.error("Erreur chargement commerce :", error);
-      }
-    }
+          };
+        });
 
-    loadBusiness();
-  }, [activeBusinessId]);
+        setApiBusinesses(normalized);
+      }
+    } catch (error) {
+      console.error("Erreur chargement commerces :", error);
+      setApiBusinesses([]);
+    }
+  }
+
+  loadBusinesses();
+}, []);
 
   const loadClientFromBackend = useCallback(async () => {
     const pathParts = window.location.pathname.split("/");
@@ -305,55 +326,74 @@ const activeBusinessId =
     loadMerchantData();
   }, []);
 
-  const requestUserLocation = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      setGeoState({
-        loading: false,
-        error: "La géolocalisation n'est pas supportée sur cet appareil.",
-        coords: null,
-      });
-      return;
-    }
+function requestUserLocation() {
+  console.log("requestUserLocation appelée");
 
+  if (!navigator.geolocation) {
     setGeoState({
-      loading: true,
-      error: "",
-      coords: null,
+      status: "error",
+      message: "La géolocalisation n'est pas disponible sur ce navigateur.",
+      latitude: null,
+      longitude: null,
     });
+    return;
+  }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setGeoState({
-          loading: false,
-          error: "",
-          coords: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          },
-        });
-      },
-      (error) => {
-        let message = "Impossible de récupérer votre position.";
+  setLocationMode("auto");
 
-        if (error.code === 1) message = "Vous avez refusé l'accès à la position.";
-        if (error.code === 2) message = "Position indisponible actuellement.";
-        if (error.code === 3) message = "La demande de géolocalisation a expiré.";
+  setGeoState({
+    status: "loading",
+    message: "Recherche de votre position...",
+    latitude: null,
+    longitude: null,
+  });
 
-        setGeoState({
-          loading: false,
-          error: message,
-          coords: null,
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      console.log("POSITION OK", position.coords);
+
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      setGeoState({
+        status: "success",
+        message: `Position détectée : ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+        latitude,
+        longitude,
+      });
+    },
+    (error) => {
+      console.error("Erreur géolocalisation :", error);
+
+      let message = "Impossible de récupérer votre position.";
+
+      if (error.code === 1) {
+        message =
+          "Autorisation refusée. Cliquez sur l’icône de localisation dans Chrome et autorisez le site.";
       }
-    );
-  }, []);
 
+      if (error.code === 2) {
+        message = "Position indisponible. Réessayez ou utilisez le choix manuel.";
+      }
+
+      if (error.code === 3) {
+        message = "Temps d’attente dépassé. Réessayez ou utilisez le choix manuel.";
+      }
+
+      setGeoState({
+        status: "error",
+        message,
+        latitude: null,
+        longitude: null,
+      });
+    },
+    {
+      enableHighAccuracy: false,
+      timeout: 20000,
+      maximumAge: 60000,
+    }
+  );
+}
   useEffect(() => {
     function handleBeforeInstallPrompt(event) {
       event.preventDefault();
@@ -532,22 +572,51 @@ const activeBusinessId =
     };
   }, [merchantContact, programSettings, merchantPromotions, geoState.coords]);
 
-  const businesses = useMemo(() => {
-    const list = [];
+ const businesses = useMemo(() => {
+  const list = [...apiBusinesses];
 
-    if (apiBusiness) {
-      list.push(apiBusiness);
-    }
+  if (
+    dynamicBusiness &&
+    !list.find((business) => String(business.id) === String(dynamicBusiness.id))
+  ) {
+    list.push(dynamicBusiness);
+  }
 
-    if (
-      dynamicBusiness &&
-      !list.find((business) => String(business.id) === String(dynamicBusiness.id))
-    ) {
-      list.push(dynamicBusiness);
-    }
+  return list;
+}, [apiBusinesses, dynamicBusiness]);
 
-    return list;
-  }, [apiBusiness, dynamicBusiness]);
+  const availableCountries = [
+  ...new Set(
+    businesses
+      .map((b) => b.country)
+      .filter(Boolean)
+  ),
+];
+
+const availableCities = [
+  ...new Set(
+    businesses
+      .filter(
+        (b) =>
+          !manualCountry || b.country === manualCountry
+      )
+      .map((b) => b.city)
+      .filter(Boolean)
+  ),
+];
+
+const availableZones = [
+  ...new Set(
+    businesses
+      .filter(
+        (b) =>
+          (!manualCountry || b.country === manualCountry) &&
+          (!manualCity || b.city === manualCity)
+      )
+      .map((b) => b.zoneLabel)
+      .filter(Boolean)
+  ),
+];
 
   const selectedBusiness = useMemo(() => {
     if (!businesses.length) {
@@ -555,18 +624,31 @@ const activeBusinessId =
     }
 
     if (manualBusinessId) {
-      const manualBusiness = businesses.find(
-        (business) => String(business.id) === String(manualBusinessId)
-      );
+  const manualBusiness = businesses.find(
+    (business) => String(business.id) === String(manualBusinessId)
+  );
 
-      if (manualBusiness) {
-        return manualBusiness;
-      }
-    }
+  if (manualBusiness) {
+    return {
+      ...manualBusiness,
+      radiusKm: Number(manualBusiness.radiusKm || 0),
+      region: manualBusiness.region || "",
+      zoneLabel: manualBusiness.zoneLabel || "",
+    };
+  }
+
+  localStorage.removeItem(STORAGE_SELECTED_BUSINESS);
+}
 
     if (!geoState.coords) {
-      return businesses[0];
-    }
+  return {
+    ...businesses[0],
+    radiusKm: Number(businesses[0].radiusKm || 0),
+    region: businesses[0].region || "",
+    zoneLabel: businesses[0].zoneLabel || "",
+  };
+}
+ 
 
     const ranked = [...businesses].sort((a, b) => {
       const distanceA = getDistanceKm(
@@ -588,6 +670,28 @@ const activeBusinessId =
 
     return ranked[0];
   }, [businesses, geoState.coords, manualBusinessId]);
+
+    useEffect(() => {
+  async function loadBusinessContents() {
+    if (!selectedBusiness?.id) return;
+
+    try {
+      const response = await fetch(
+        buildApiUrl(`/business-content/public/${selectedBusiness.id}`)
+      );
+
+      const json = await response.json();
+
+      if (response.ok && json.ok && Array.isArray(json.contents)) {
+        setBusinessContents(json.contents);
+      }
+    } catch (error) {
+      console.error("Erreur chargement menus/services :", error);
+    }
+  }
+
+  loadBusinessContents();
+}, [selectedBusiness?.id]);
 
   const selectedBusinessDistance =
     geoState.coords && selectedBusiness?.lat != null && selectedBusiness?.lng != null
@@ -652,7 +756,7 @@ const activeBusinessId =
 
   console.log("SELECTED BUSINESS =", selectedBusiness);
   console.log("DYNAMIC BUSINESS =", dynamicBusiness);
-  console.log("API BUSINESS =", apiBusiness);
+  console.log("API BUSINESSES =", apiBusinesses);
   console.log("NEARBY OFFERS =", nearbyOffers);
   console.log("MERCHANT PROMOTIONS =", merchantPromotions);
 
@@ -814,10 +918,11 @@ const activeBusinessId =
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: cleanName,
-          email: cleanEmail,
-          phone: cleanPhone,
-        }),
+  name: cleanName,
+  email: cleanEmail,
+  phone: cleanPhone,
+  businessId: selectedBusiness?.id || activeBusinessId || "",
+}),
       });
 
       const data = await response.json();
@@ -849,13 +954,20 @@ const activeBusinessId =
     }
   };
 
+ const cardUrl = useMemo(() => {
   const currentCardId = window.location.pathname.split("/card/")[1];
+  const cardId = currentCardId || client?.loyaltyId || client?.id;
 
-  const cardUrl = `https://zeltyo-clients.netlify.app/card/${
-    currentCardId || client?.loyaltyId || client?.id
-  }`;
+  if (!cardId) {
+    return window.location.href;
+  }
 
-  const saveClientSubscription = async (newSubscriptionId) => {
+  const businessId = selectedBusiness?.id || activeBusinessId || "BUS-2";
+
+  return `${window.location.origin}/card/${cardId}?businessId=${businessId}`;
+}, [client?.loyaltyId, client?.id, selectedBusiness?.id, activeBusinessId]);
+
+  const saveClientSubscription = async (newSubscriptionId, externalId = "") => {
     try {
       const response = await fetch(buildApiUrl("/clients/register-subscription"), {
         method: "POST",
@@ -867,6 +979,7 @@ const activeBusinessId =
           name: client.name,
           phone: client.phone,
           subscriptionId: newSubscriptionId,
+          externalId,
           country: client.country,
           city: client.city,
           zoneId: client.zoneId,
@@ -898,7 +1011,10 @@ const activeBusinessId =
       }
 
       await initOneSignal();
-      const status = await enableOneSignalNotifications();
+      const status = await enableOneSignalNotifications({
+  businessId: selectedBusiness?.id,
+  clientId: client?.id || client?.loyaltyId,
+});
 
       setOneSignalReady(true);
       setPermission(Boolean(status.permission));
@@ -906,8 +1022,8 @@ const activeBusinessId =
       setSubscriptionId(status.subscriptionId || null);
 
       if (status.subscriptionId) {
-        await saveClientSubscription(status.subscriptionId);
-      }
+  await saveClientSubscription(status.subscriptionId, status.externalId);
+}
 
       if (status.permission !== true) {
         alert("Notifications refusées");
@@ -920,6 +1036,27 @@ const activeBusinessId =
       alert("Erreur lors de l’activation des notifications");
     }
   };
+
+  function addFavoriteDestination(destination) {
+  const exists = favoriteDestinations.some(
+    (d) =>
+      d.country === destination.country &&
+      d.region === destination.region &&
+      d.city === destination.city &&
+      d.zone === destination.zone
+  );
+
+  if (exists) return;
+
+  const updated = [...favoriteDestinations, destination];
+
+  setFavoriteDestinations(updated);
+
+  localStorage.setItem(
+    "zeltyo_favorite_destinations",
+    JSON.stringify(updated)
+  );
+}
 
   return (
     <div
@@ -1079,12 +1216,13 @@ const activeBusinessId =
           }}
         >
           {[
-            ["offers", "Offres"],
-            ["booking", "Réserver"],
-            ["loyalty", "Fidélité"],
-            ["commerce", "Commerce"],
-            ["cards", "Mes cartes"],
-          ].map(([key, label]) => (
+  ["offers", "Offres"],
+  ["booking", "Réserver"],
+  ["loyalty", "Fidélité"],
+  ["commerce", "Commerce"],
+  ["menu", "Menu & Services"],
+  ["cards", "Mes cartes"],
+].map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -1111,18 +1249,57 @@ const activeBusinessId =
         {activeTab === "offers" && (
           <>
             <GeoSection
-              COLORS={COLORS}
-              locationMode={locationMode}
-              setLocationMode={setLocationMode}
-              requestUserLocation={requestUserLocation}
-              geoState={geoState}
-              selectedBusiness={selectedBusiness}
-              selectedBusinessDistance={selectedBusinessDistance}
-              getDistanceLabel={getDistanceLabel}
-              copperButton={copperButton}
-              ghostButton={ghostButton}
-              ZoneLine={ZoneLine}
-            />
+  COLORS={COLORS}
+  locationMode={locationMode}
+  setLocationMode={setLocationMode}
+  requestUserLocation={requestUserLocation}
+  geoState={geoState}
+  selectedBusiness={selectedBusiness}
+  selectedBusinessDistance={selectedBusinessDistance}
+  getDistanceLabel={getDistanceLabel}
+  copperButton={copperButton}
+  ghostButton={ghostButton}
+  manualRegion={manualRegion}
+setManualRegion={setManualRegion}
+favoriteDestinations={favoriteDestinations}
+addFavoriteDestination={addFavoriteDestination}
+  ZoneLine={ZoneLine}
+  style={{
+  width: "100%",
+  padding: "12px",
+  borderRadius: 12,
+  border: `1px solid ${COLORS.border}`,
+  background: COLORS.surface,
+  color: COLORS.text,
+  fontWeight: 700,
+  }}
+
+  manualBusinessId={manualBusinessId}
+  setManualBusinessId={setManualBusinessId}
+  STORAGE_SELECTED_BUSINESS={STORAGE_SELECTED_BUSINESS}
+  businesses={businesses}
+
+  manualCountry={manualCountry}
+setManualCountry={setManualCountry}
+manualCity={manualCity}
+setManualCity={setManualCity}
+manualZone={manualZone}
+setManualZone={setManualZone}
+availableCountries={availableCountries}
+availableCities={availableCities}
+availableZones={availableZones}
+/>
+
+<div
+  style={{
+    marginBottom: 16,
+    textAlign: "center",
+    color: COLORS.gold,
+    fontWeight: 700,
+  }}
+>
+  🎁 {filteredOffers.length} offre(s) disponible(s)
+</div>
 
             <OffersSection
               COLORS={COLORS}
@@ -1193,6 +1370,24 @@ const activeBusinessId =
 
         {activeTab === "commerce" && (
           <div id="commerce-section">
+             <GeoSection
+      COLORS={COLORS}
+      locationMode={locationMode}
+      setLocationMode={setLocationMode}
+      requestUserLocation={requestUserLocation}
+      geoState={geoState}
+      selectedBusiness={selectedBusiness}
+      selectedBusinessDistance={selectedBusinessDistance}
+      getDistanceLabel={getDistanceLabel}
+      copperButton={copperButton}
+      ghostButton={ghostButton}
+      ZoneLine={ZoneLine}
+      manualBusinessId={manualBusinessId}
+      setManualBusinessId={setManualBusinessId}
+      STORAGE_SELECTED_BUSINESS={STORAGE_SELECTED_BUSINESS}
+      businesses={businesses}
+    />
+
             <BusinessZoneSection
               COLORS={COLORS}
               selectedBusiness={selectedBusiness}
@@ -1211,6 +1406,109 @@ const activeBusinessId =
             />
           </div>
         )}
+
+        {activeTab === "menu" && (
+  <div>
+    <h2 style={{ color: COLORS.goldLight }}>Menu & Services</h2>
+
+    {businessContents.length === 0 ? (
+      <div
+        style={{
+          background: COLORS.surface,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 22,
+          padding: 18,
+          textAlign: "center",
+        }}
+      >
+        <p style={{ color: COLORS.textSoft }}>
+          Aucun menu ou service disponible pour ce commerce.
+        </p>
+      </div>
+    ) : (
+      <div style={{ display: "grid", gap: 16 }}>
+        {businessContents.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 22,
+              padding: 18,
+              boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+            }}
+          >
+            <div
+              style={{
+                color: COLORS.goldLight,
+                fontWeight: 900,
+                fontSize: 20,
+                marginBottom: 8,
+              }}
+            >
+              {item.title || item.fileName || "Menu / Service"}
+            </div>
+
+            {item.description ? (
+              <p style={{ color: COLORS.textSoft, lineHeight: 1.6 }}>
+                {item.description}
+              </p>
+            ) : null}
+
+            {item.price ? (
+              <div
+                style={{
+                  color: COLORS.copperLight,
+                  fontWeight: 900,
+                  marginBottom: 12,
+                }}
+              >
+                {item.price} €
+              </div>
+            ) : null}
+
+            {item.mimeType?.startsWith("image/") ? (
+              <img
+                src={item.fileData}
+                alt={item.title || item.fileName || "Menu"}
+                style={{
+                  width: "100%",
+                  borderRadius: 16,
+                  border: `1px solid ${COLORS.border}`,
+                  background: "#000",
+                  maxHeight: 520,
+                  objectFit: "contain",
+                }}
+              />
+            ) : item.mimeType === "application/pdf" ? (
+              <button
+  style={copperButton()}
+  onClick={() => {
+    if (!item.fileData) {
+      alert("PDF indisponible");
+      return;
+    }
+
+    const win = window.open();
+    if (win) {
+      win.document.write(`
+        <iframe
+          src="${item.fileData}"
+          style="width:100%;height:100vh;border:none;"
+        ></iframe>
+      `);
+    }
+  }}
+>
+  📄 Ouvrir le PDF
+</button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
         {activeTab === "cards" && (
           <NotificationsSection
@@ -1260,7 +1558,7 @@ function copperButton() {
   };
 }
 
-function copperButtonSmall() {
+const copperButtonSmall = () => {
   return {
     background: "linear-gradient(135deg, #D97A32, #F2A65A)",
     color: "#111111",
@@ -1272,7 +1570,7 @@ function copperButtonSmall() {
     boxShadow: "0 10px 20px rgba(217,122,50,0.20)",
     fontSize: 13,
   };
-}
+};
 
 function ghostButton() {
   return {
@@ -1445,4 +1743,3 @@ function ZoneLine({ label, value }) {
   );
 }
 
-export { copperButtonSmall, ghostButtonSmall };

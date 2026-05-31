@@ -133,7 +133,16 @@ router.post("/", async (req, res) => {
 
 router.post("/register-subscription", async (req, res) => {
   try {
-    const { id, name, phone, subscriptionId } = req.body;
+    const {
+      id,
+      loyaltyId,
+      name,
+      phone,
+      email,
+      businessId,
+      subscriptionId,
+      externalId,
+    } = req.body;
 
     if (!subscriptionId) {
       return res.status(400).json({
@@ -142,20 +151,33 @@ router.post("/register-subscription", async (req, res) => {
       });
     }
 
-    const clients = await upsertClient({
+    if (!businessId) {
+      return res.status(400).json({
+        ok: false,
+        error: "businessId obligatoire",
+      });
+    }
+
+    const savedClient = await upsertClient({
       id,
+      loyaltyId,
       name,
       phone,
+      email,
+      businessId,
       subscriptionId,
+      externalId,
+      updatedAt: new Date().toISOString(),
     });
 
     return res.json({
       ok: true,
       message: "Client enregistré",
-      clients,
+      client: savedClient,
     });
   } catch (error) {
     console.error("Erreur POST /clients/register-subscription :", error);
+
     return res.status(500).json({
       ok: false,
       error: "Erreur enregistrement client",

@@ -24,6 +24,11 @@ function waitForOneSignal(maxAttempts = 100, interval = 100) {
   });
 }
 
+export function buildClientExternalId(businessId, clientId) {
+  if (!businessId || !clientId) return "";
+  return `${String(businessId).trim()}_${String(clientId).trim()}`;
+}
+
 export function initOneSignal() {
   if (oneSignalReadyPromise) {
     return oneSignalReadyPromise;
@@ -40,8 +45,6 @@ export function initOneSignal() {
       serviceWorkerPath: "/OneSignalSDKWorker.js",
       serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
     });
-
-    console.log("OneSignal initialisé ✅");
 
     return OneSignal;
   })();
@@ -60,15 +63,43 @@ export async function getOneSignalStatus() {
   };
 }
 
-export async function enableOneSignalNotifications() {
+export async function setOneSignalExternalId(businessId, clientId) {
+  const OneSignal = await initOneSignal();
+
+  const externalId = buildClientExternalId(businessId, clientId);
+
+  if (!externalId) {
+    return {
+      ok: false,
+      externalId: "",
+    };
+  }
+
+  await OneSignal.login(externalId);
+
+  return {
+    ok: true,
+    externalId,
+  };
+}
+
+export async function enableOneSignalNotifications({ businessId, clientId } = {}) {
   const OneSignal = await initOneSignal();
 
   await OneSignal.Notifications.requestPermission();
+
+  let externalId = "";
+
+  if (businessId && clientId) {
+    const result = await setOneSignalExternalId(businessId, clientId);
+    externalId = result.externalId;
+  }
 
   return {
     permission: await OneSignal.Notifications.permission,
     optedIn: await OneSignal.User.PushSubscription.optedIn,
     subscriptionId: await OneSignal.User.PushSubscription.id,
     token: await OneSignal.User.PushSubscription.token,
+    externalId,
   };
 }

@@ -338,7 +338,7 @@ export default function LoyaltyCardSection({
             >
               <QRCodeSVG
                 value={cardUrl}
-                size={120}
+                size={180}
                 bgColor="#FFFFFF"
                 fgColor="#111111"
                 level="H"
