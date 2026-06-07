@@ -848,7 +848,11 @@ const availableZones = [
         throw new Error(data.error || "Erreur chargement réservations client");
       }
 
-      const clientResponse = await fetch(buildApiUrl(`/clients/by-loyalty/${clientId}`));
+      const clientResponse = await fetch(
+  buildApiUrl(
+    `/clients/by-loyalty/${clientId}?businessId=${selectedBusiness?.id || ""}`
+  )
+);
       const fidelityData = await clientResponse.json();
 
       console.log("CLIENT FIDELITY DATA =", fidelityData);
