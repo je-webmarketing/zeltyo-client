@@ -202,13 +202,7 @@ useEffect(() => {
   const urlParams = new URLSearchParams(window.location.search);
 const businessIdFromUrl = urlParams.get("businessId");
 
-const activeBusinessId =
-  selectedBusiness?.id ||
-  clientData?.businessId ||
-  manualBusinessId ||
-  businessIdFromUrl ||
-  "";
-  
+
   useEffect(() => {
   async function loadBusinesses() {
     try {
@@ -303,7 +297,8 @@ const activeBusinessId =
        const businessId =
   parsedProgramSettings?.businessId ||
   parsedMerchantContact?.businessId ||
-  activeBusinessId ||
+  manualBusinessId ||
+businessIdFromUrl ||
   "";
 
         const response = await fetch(buildApiUrl(`/promotions/public/${businessId}`));
@@ -728,7 +723,7 @@ const availableZones = [
       return selectedBusiness.offers.map((offer, index) =>
         normalizePromotion(offer, {
           id: `OFFER-${index + 1}`,
-          businessId: selectedBusiness?.id || activeBusinessId || "",
+          businessId: selectedBusiness?.id || manualBusinessId || businessIdFromUrl || "",
           businessName: selectedBusiness?.name || "Commerce",
           city: selectedBusiness?.city || "",
           zoneLabel: selectedBusiness?.zoneLabel || "",
@@ -742,7 +737,7 @@ const availableZones = [
       return merchantPromotions.filter(isPromotionActive).map((promo, index) =>
         normalizePromotion(promo, {
           id: `PROMO-${index + 1}`,
-          businessId: selectedBusiness?.id || activeBusinessId || "",
+          businessId: selectedBusiness?.id || manualBusinessId || businessIdFromUrl || "",
           businessName: selectedBusiness?.name || "Commerce",
           city: selectedBusiness?.city || "",
           zoneLabel: selectedBusiness?.zoneLabel || "",
@@ -849,9 +844,9 @@ const availableZones = [
         throw new Error(data.error || "Erreur chargement réservations client");
       }
 
-      const clientResponse = await fetch(
+const clientResponse = await fetch(
   buildApiUrl(
-    `/clients/by-loyalty/${clientId}?businessId=${selectedBusiness?.id || ""}`
+    `/clients/by-loyalty/${clientId}?businessId=${selectedBusiness?.id || manualBusinessId || businessIdFromUrl || ""}`
   )
 );
       const fidelityData = await clientResponse.json();
@@ -931,7 +926,7 @@ const availableZones = [
   name: cleanName,
   email: cleanEmail,
   phone: cleanPhone,
-  businessId: selectedBusiness?.id || activeBusinessId || "",
+  businessId: selectedBusiness?.id ||manualBusinessId || businessIdFromUrl || "",
 }),
       });
 
@@ -972,10 +967,22 @@ const availableZones = [
     return window.location.href;
   }
 
-  const businessId = selectedBusiness?.id || activeBusinessId || "BUS-2";
+  const businessId =
+  selectedBusiness?.id ||
+  clientData?.businessId ||
+  manualBusinessId ||
+  businessIdFromUrl ||
+  "";
 
   return `${window.location.origin}/card/${cardId}?businessId=${businessId}`;
-}, [client?.loyaltyId, client?.id, selectedBusiness?.id, activeBusinessId]);
+}, [
+  client?.loyaltyId,
+  client?.id,
+  selectedBusiness?.id,
+  clientData?.businessId,
+  manualBusinessId,
+  businessIdFromUrl,
+]);
 
   const saveClientSubscription = async (newSubscriptionId, externalId = "") => {
     try {
@@ -993,7 +1000,7 @@ const availableZones = [
           country: client.country,
           city: client.city,
           zoneId: client.zoneId,
-          businessId: selectedBusiness?.id || activeBusinessId || "",
+          businessId: selectedBusiness?.id || manualBusinessId || businessIdFromUrl || "",
           region: client.region,
           zoneLabel: client.zoneLabel,
           radiusKm: client.radiusKm,
@@ -1349,7 +1356,7 @@ availableZones={availableZones}
             <BookingForm
               selectedBusiness={{
                 ...selectedBusiness,
-                id: selectedBusiness?.id || activeBusinessId || "",
+                id: selectedBusiness?.id || manualBusinessId || businessIdFromUrl || "",
                 menu: menuItems,
                 phone: merchantContact?.phone || selectedBusiness?.phone || "",
               }}
