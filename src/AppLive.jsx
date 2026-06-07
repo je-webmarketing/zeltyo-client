@@ -312,6 +312,8 @@ const poweredByUrl = "https://ericjarry34.systeme.io/je-webmarketing";
     const selectedCustomer = customers.find((customer) => customer.id === scanId);
     if (!selectedCustomer) return;
 
+    console.log("CLIENT AVANT AJOUT =", customerFound);
+
     setCustomers((prev) =>
       prev.map((customer) => {
         if (customer.id !== scanId) return customer;
@@ -470,16 +472,23 @@ const poweredByUrl = "https://ericjarry34.systeme.io/je-webmarketing";
   }
 
   const filteredCustomers = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return customers;
+  const businessId = currentUser?.businessId || "";
+  const q = search.toLowerCase().trim();
 
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(q) ||
-        customer.email.toLowerCase().includes(q) ||
-        customer.id.toLowerCase().includes(q)
-    );
-  }, [customers, search]);
+  const businessCustomers = customers.filter(
+    (customer) => String(customer.businessId) === String(businessId)
+  );
+
+  if (!q) return businessCustomers;
+
+  return businessCustomers.filter(
+    (customer) =>
+      customer.name?.toLowerCase().includes(q) ||
+      customer.email?.toLowerCase().includes(q) ||
+      customer.id?.toLowerCase().includes(q) ||
+      customer.loyaltyId?.toLowerCase().includes(q)
+  );
+}, [customers, search, currentUser?.businessId]);
 
   const totalClients = customers.length;
   const totalPoints = customers.reduce((sum, c) => sum + c.points, 0);
@@ -1656,12 +1665,21 @@ const styles = {
                   </div>
 
                   <button
-                    style={styles.buttonReward}
-                    onClick={() => useReward(customer.id)}
-                    disabled={customer.rewardsAvailable <= 0}
-                  >
-                    Utiliser une récompense
-                  </button>
+  style={{
+    ...styles.buttonReward,
+    opacity: Number(customer.points || 0) >= Number(rewardGoal || 10) ? 1 : 0.45,
+    cursor:
+      Number(customer.points || 0) >= Number(rewardGoal || 10)
+        ? "pointer"
+        : "not-allowed",
+  }}
+  onClick={() => useReward(customer.id)}
+  disabled={Number(customer.points || 0) < Number(rewardGoal || 10)}
+>
+  {Number(customer.points || 0) >= Number(rewardGoal || 10)
+    ? "🎁 Utiliser la récompense"
+    : `Encore ${Number(rewardGoal || 10) - Number(customer.points || 0)} point(s)`}
+</button>
 
                   <button
                     style={styles.buttonSecondary}

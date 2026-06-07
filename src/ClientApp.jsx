@@ -867,7 +867,12 @@ const availableZones = [
     console.log("CLIENT DATA BOOKINGS =", clientData);
 
     const fallbackPhone = localStorage.getItem("zeltyo_last_phone");
-    const identifier = clientData?.id || clientData?.phone || fallbackPhone;
+    const identifier =
+  clientData?.loyaltyId ||
+  clientData?.id ||
+  localStorage.getItem("zeltyo_loyalty_id") ||
+  clientData?.phone ||
+  fallbackPhone;
 
     if (!identifier) {
       console.log("Aucun id/téléphone client pour charger les réservations");
