@@ -203,11 +203,12 @@ useEffect(() => {
 const businessIdFromUrl = urlParams.get("businessId");
 
 const activeBusinessId =
+  selectedBusiness?.id ||
   clientData?.businessId ||
   manualBusinessId ||
   businessIdFromUrl ||
-  "BUS-2";
-
+  "";
+  
   useEffect(() => {
   async function loadBusinesses() {
     try {
