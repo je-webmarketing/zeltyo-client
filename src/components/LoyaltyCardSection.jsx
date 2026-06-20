@@ -59,9 +59,9 @@ export default function LoyaltyCardSection({
               whiteSpace: "nowrap",
             }}
           >
-            {clientRewardRemaining === 0
-              ? "Récompense atteinte"
-              : `${clientRewardRemaining} point(s) restants`}
+           {rewardAvailable
+  ? `🎁 ${rewardsAvailable} récompense(s) disponible(s)`
+  : `${clientRewardRemaining} point(s) restants`}
           </div>
         </div>
 
@@ -295,9 +295,9 @@ export default function LoyaltyCardSection({
                 fontSize: 14,
               }}
             >
-              {clientRewardRemaining === 0
-                ? "Votre récompense premium est disponible."
-                : `${clientRewardRemaining} point(s) encore pour débloquer votre récompense.`}
+              {rewardAvailable
+  ? `🎁 ${rewardsAvailable} récompense(s) disponible(s). ${clientPoints % rewardGoal} point(s) vers la prochaine.`
+  : `${clientRewardRemaining} point(s) encore pour débloquer votre récompense.`}
             </div>
           </div>
 
@@ -345,6 +345,23 @@ export default function LoyaltyCardSection({
                 includeMargin={false}
               />
             </div>
+
+            <div
+  style={{
+    marginTop: 12,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(212,175,55,0.12)",
+    border: `1px solid ${COLORS.gold}`,
+    color: COLORS.goldLight,
+    fontWeight: 900,
+    fontSize: 13,
+    wordBreak: "break-all",
+    textAlign: "center",
+  }}
+>
+  Code fidélité : {client?.loyaltyId || client?.id || "Non disponible"}
+</div>
 
             <div
               style={{

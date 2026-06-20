@@ -751,6 +751,9 @@ const availableZones = [
   }, [selectedBusiness, merchantPromotions, selectedBusinessDistance]);
 
   console.log("SELECTED BUSINESS =", selectedBusiness);
+  console.log("CLIENT DATA =", clientData);
+console.log("CLIENT BUSINESS =", clientData?.businessId);
+console.log("SELECTED BUSINESS ID =", selectedBusiness?.id);
   console.log("DYNAMIC BUSINESS =", dynamicBusiness);
   console.log("API BUSINESSES =", apiBusinesses);
   console.log("NEARBY OFFERS =", nearbyOffers);
@@ -817,11 +820,23 @@ const availableZones = [
     zoneId: selectedBusiness?.zoneId || "",
     zoneLabel: selectedBusiness?.zoneLabel || "",
     radiusKm: selectedBusiness?.radiusKm || 0,
-    points: Number(clientData?.points || clientCard?.points || 0),
-    visits: Number(clientData?.visits || clientCard?.visits || 0),
-    rewardsAvailable: Number(
-      clientData?.rewardsAvailable || clientCard?.rewardsAvailable || 0
-    ),
+    points:
+  String(clientCard?.businessId || clientData?.businessId || "") ===
+  String(selectedBusiness?.id || "")
+    ? Number(clientCard?.points || clientData?.points || 0)
+    : 0,
+
+visits:
+  String(clientCard?.businessId || clientData?.businessId || "") ===
+  String(selectedBusiness?.id || "")
+    ? Number(clientCard?.visits || clientData?.visits || 0)
+    : 0,
+
+rewardsAvailable:
+  String(clientCard?.businessId || clientData?.businessId || "") ===
+  String(selectedBusiness?.id || "")
+    ? Number(clientCard?.rewardsAvailable || clientData?.rewardsAvailable || 0)
+    : 0,
   };
 
   const loadClientBookings = useCallback(async (clientId) => {
@@ -844,14 +859,22 @@ const availableZones = [
         throw new Error(data.error || "Erreur chargement réservations client");
       }
 
+const fidelityBusinessId =
+  clientData?.businessId ||
+  selectedBusiness?.id ||
+  manualBusinessId ||
+  businessIdFromUrl ||
+  "";
+
 const clientResponse = await fetch(
   buildApiUrl(
-    `/clients/by-loyalty/${clientId}?businessId=${selectedBusiness?.id || manualBusinessId || businessIdFromUrl || ""}`
+    `/clients/by-loyalty/${clientId}?businessId=${fidelityBusinessId}`
   )
 );
       const fidelityData = await clientResponse.json();
 
-      console.log("CLIENT FIDELITY DATA =", fidelityData);
+      console.log("FIDELITY DATA =", fidelityData);
+console.log("CLIENT API =", fidelityData.client);
 
       if (fidelityData.ok && fidelityData.client) {
         setClientCard(fidelityData.client);
@@ -861,7 +884,12 @@ const clientResponse = await fetch(
     } catch (error) {
       console.error("Erreur chargement réservations client :", error);
     }
-  }, []);
+  }, [
+  selectedBusiness?.id,
+  manualBusinessId,
+  businessIdFromUrl,
+  clientData?.businessId,
+]);
 
   useEffect(() => {
     console.log("CLIENT DATA BOOKINGS =", clientData);
@@ -898,13 +926,17 @@ const clientResponse = await fetch(
   const cyclePoints = rewardGoal > 0 ? clientPoints % rewardGoal : 0;
 
   const clientRewardRemaining =
-    rewardGoal <= 0
-      ? 0
-      : clientPoints > 0 && cyclePoints === 0
-      ? 0
-      : rewardGoal - cyclePoints;
+  rewardGoal <= 0
+    ? 0
+    : clientPoints >= rewardGoal
+      ? rewardGoal - (clientPoints % rewardGoal || 0)
+      : rewardGoal - clientPoints;
 
-  const rewardAvailable = clientRewards > 0 || clientPoints >= rewardGoal;
+const rewardsAvailable = Math.floor(
+  clientPoints / Math.max(1, rewardGoal)
+);
+
+const rewardAvailable = rewardsAvailable > 0;
 
   const createClient = async () => {
     const cleanName = name.trim();
