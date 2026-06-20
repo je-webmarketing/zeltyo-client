@@ -327,24 +327,28 @@ export default function LoyaltyCardSection({
               QR fidélité
             </div>
 
-            <div
-              style={{
-                background: "#ffffff",
-                padding: 12,
-                borderRadius: 18,
-                boxShadow: "0 12px 24px rgba(0,0,0,0.25)",
-                marginBottom: 12,
-              }}
-            >
-              <QRCodeSVG
-  value={client?.loyaltyId || client?.id || ""}
-                size={180}
-                bgColor="#FFFFFF"
-                fgColor="#111111"
-                level="H"
-                includeMargin={false}
-              />
-            </div>
+          <div
+  style={{
+    background: "#ffffff",
+    padding: 12,
+    borderRadius: 18,
+    boxShadow: "0 12px 24px rgba(0,0,0,0.25)",
+    marginBottom: 12,
+    maxWidth: "100%",
+    overflow: "hidden",
+    display: "flex",
+    justifyContent: "center",
+  }}
+>
+  <QRCodeSVG
+    value={client?.loyaltyId || client?.id || ""}
+    size={145}
+    bgColor="#FFFFFF"
+    fgColor="#111111"
+    level="H"
+    includeMargin={false}
+  />
+</div>
 
             <div
   style={{
@@ -358,6 +362,8 @@ export default function LoyaltyCardSection({
     fontSize: 13,
     wordBreak: "break-all",
     textAlign: "center",
+    maxWidth: "100%",
+overflowWrap: "break-word",
   }}
 >
   Code fidélité : {client?.loyaltyId || client?.id || "Non disponible"}

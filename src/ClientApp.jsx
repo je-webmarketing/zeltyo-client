@@ -839,6 +839,10 @@ rewardsAvailable:
     : 0,
   };
 
+  const rewardsAvailable = Math.floor(
+  Number(client.points || 0) / Math.max(1, Number(selectedBusiness?.rewardGoal || 10))
+);
+
   const loadClientBookings = useCallback(async (clientId) => {
     try {
       if (!clientId) return;
