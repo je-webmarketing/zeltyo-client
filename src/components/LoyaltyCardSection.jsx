@@ -61,7 +61,7 @@ export default function LoyaltyCardSection({
             }}
           >
            {rewardAvailable
-  ? `🎁 ${rewardsAvailable} récompense(s) disponible(s)`
+  ? `🎁 ${Number(rewardsAvailable || 0)} récompense(s) disponible(s). ${clientPoints % rewardGoal} point(s) vers la prochaine.`
   : `${clientRewardRemaining} point(s) restants`}
           </div>
         </div>
@@ -297,7 +297,7 @@ export default function LoyaltyCardSection({
               }}
             >
               {rewardAvailable
-  ? `🎁 ${rewardsAvailable} récompense(s) disponible(s). ${clientPoints % rewardGoal} point(s) vers la prochaine.`
+  ? `🎁 ${Number(rewardsAvailable || 0)} récompense(s) disponible(s). ${clientPoints % rewardGoal} point(s) vers la prochaine.`
   : `${clientRewardRemaining} point(s) encore pour débloquer votre récompense.`}
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function LoyaltyCardSection({
 overflowWrap: "break-word",
   }}
 >
-  Code fidélité : {client?.loyaltyId || client?.id || "Non disponible"}
+  Code fidélité : {client?.loyaltyId || client?.id || cardUrl?.split("/card/")[1]?.split("?")[0] || "Non disponible"}
 </div>
 
             <div
