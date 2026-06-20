@@ -12,6 +12,7 @@ export default function LoyaltyCardSection({
   clientProgress,
   clientRewardRemaining,
   rewardAvailable,
+  rewardsAvailable,
   InfoCard,
   MiniStat,
 }) {
