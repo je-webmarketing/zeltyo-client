@@ -951,11 +951,11 @@ console.log("CLIENT API =", fidelityData.client);
 
     const fallbackPhone = localStorage.getItem("zeltyo_last_phone");
     const identifier =
+  clientData?.phone ||
+  fallbackPhone ||
   clientData?.loyaltyId ||
   clientData?.id ||
-  localStorage.getItem("zeltyo_loyalty_id") ||
-  clientData?.phone ||
-  fallbackPhone;
+  localStorage.getItem("zeltyo_loyalty_id");
 
     if (!identifier) {
       console.log("Aucun id/téléphone client pour charger les réservations");
