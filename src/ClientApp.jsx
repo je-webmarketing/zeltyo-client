@@ -655,7 +655,13 @@ console.log("API BUSINESSES LENGTH =", businesses.length);
   };
 }
 
-
+const activeBusinessId =
+  selectedBusiness?.id ||
+  manualBusinessId ||
+  businessIdFromUrl ||
+  localStorage.getItem(STORAGE_SELECTED_BUSINESS) ||
+  clientData?.businessId ||
+  "BUS-ISTANBUL";
 
     const ranked = [...businesses].sort((a, b) => {
       const distanceA = getDistanceKm(
@@ -678,23 +684,27 @@ console.log("API BUSINESSES LENGTH =", businesses.length);
     return ranked[0];
   }, [businesses, geoState.coords, manualBusinessId]);
 
-  useEffect(() => {
+  
   
 console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
 
+useEffect(() => {
   async function loadBusinessContents() {
-    
-    if (!selectedBusiness?.id) return;
+    const businessId =
+      manualBusinessId ||
+      businessIdFromUrl ||
+      clientData?.businessId ||
+      selectedBusiness?.id ||
+      "BUS-ISTANBUL";
 
     try {
-      const url = `/business-content/public/${selectedBusiness.id}`;
-
-      console.log("BUSINESS CONTENT URL =", url);
+      const url = `/business-content/public/${businessId}`;
+      console.log("MENU LOAD =", url);
 
       const response = await fetch(buildApiUrl(url));
       const json = await response.json();
 
-      console.log("BUSINESS CONTENT RESPONSE =", json);
+      console.log("MENU RESPONSE =", json);
 
       if (response.ok && json.ok && Array.isArray(json.contents)) {
         setBusinessContents(json.contents);
@@ -702,13 +712,13 @@ console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
         setBusinessContents([]);
       }
     } catch (error) {
-      console.error("Erreur chargement menus/services :", error);
+      console.error("Erreur menu :", error);
       setBusinessContents([]);
     }
   }
 
   loadBusinessContents();
-}, [selectedBusiness?.id]);
+}, [manualBusinessId, businessIdFromUrl, clientData?.businessId, selectedBusiness?.id]);
 
 
   const selectedBusinessDistance =
