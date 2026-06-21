@@ -209,6 +209,8 @@ const businessIdFromUrl = urlParams.get("businessId");
       const response = await fetch(buildApiUrl("/businesses"));
       const json = await response.json();
 
+      console.log("BUSINESS CONTENT RESPONSE =", json);
+
       if (response.ok && json.ok && Array.isArray(json.businesses)) {
         const normalized = json.businesses.map((business) => {
           const lat = business.latitude != null ? Number(business.latitude) : null;
@@ -644,7 +646,8 @@ const availableZones = [
     zoneLabel: businesses[0].zoneLabel || "",
   };
 }
- 
+
+
 
     const ranked = [...businesses].sort((a, b) => {
       const distanceA = getDistanceKm(
@@ -667,27 +670,37 @@ const availableZones = [
     return ranked[0];
   }, [businesses, geoState.coords, manualBusinessId]);
 
-    useEffect(() => {
+  useEffect(() => {
+  console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
+
   async function loadBusinessContents() {
+    
     if (!selectedBusiness?.id) return;
 
     try {
-      const response = await fetch(
-        buildApiUrl(`/business-content/public/${selectedBusiness.id}`)
-      );
+      const url = `/business-content/public/${selectedBusiness.id}`;
 
+      console.log("BUSINESS CONTENT URL =", url);
+
+      const response = await fetch(buildApiUrl(url));
       const json = await response.json();
+
+      console.log("BUSINESS CONTENT RESPONSE =", json);
 
       if (response.ok && json.ok && Array.isArray(json.contents)) {
         setBusinessContents(json.contents);
+      } else {
+        setBusinessContents([]);
       }
     } catch (error) {
       console.error("Erreur chargement menus/services :", error);
+      setBusinessContents([]);
     }
   }
 
   loadBusinessContents();
 }, [selectedBusiness?.id]);
+
 
   const selectedBusinessDistance =
     geoState.coords && selectedBusiness?.lat != null && selectedBusiness?.lng != null
