@@ -671,7 +671,8 @@ const availableZones = [
   }, [businesses, geoState.coords, manualBusinessId]);
 
   useEffect(() => {
-  console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
+  alert("MENU EFFECT");
+console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
 
   async function loadBusinessContents() {
     
