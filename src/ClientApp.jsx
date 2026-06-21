@@ -707,10 +707,32 @@ useEffect(() => {
       console.log("MENU RESPONSE =", json);
 
       if (response.ok && json.ok && Array.isArray(json.contents)) {
-        setBusinessContents(json.contents);
-      } else {
-        setBusinessContents([]);
-      }
+  const cleanedContents = json.contents
+    .filter((item) => String(item.businessId) === String(businessId))
+    .filter((item) => {
+      const name = String(item.title || item.fileName || "").toLowerCase();
+
+      // on exclut les fichiers parasites
+      if (name.includes("quittance")) return false;
+      if (name.includes("dentiste")) return false;
+
+      return true;
+    })
+    .filter((item, index, array) => {
+      const key = `${item.fileName || item.title || ""}-${item.mimeType || ""}`;
+      return (
+        index ===
+        array.findIndex((other) => {
+          const otherKey = `${other.fileName || other.title || ""}-${other.mimeType || ""}`;
+          return otherKey === key;
+        })
+      );
+    });
+
+  setBusinessContents(cleanedContents);
+} else {
+  setBusinessContents([]);
+}
     } catch (error) {
       console.error("Erreur menu :", error);
       setBusinessContents([]);
