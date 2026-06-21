@@ -618,8 +618,16 @@ const availableZones = [
 
   const selectedBusiness = useMemo(() => {
     if (!businesses.length) {
-      return { offers: [] };
-    }
+  return {
+    id: manualBusinessId || businessIdFromUrl || "BUS-ISTANBUL",
+    name: "ISTANBUL KEBAB",
+    offers: [],
+    rewardGoal: 10,
+  };
+}
+   console.log("MANUAL BUSINESS ID =", manualBusinessId);
+console.log("API BUSINESSES LENGTH =", businesses.length);
+ console.log("CHECKING MANUAL BUSINESS");
 
     if (manualBusinessId) {
   const manualBusiness = businesses.find(
@@ -671,7 +679,7 @@ const availableZones = [
   }, [businesses, geoState.coords, manualBusinessId]);
 
   useEffect(() => {
-  alert("MENU EFFECT");
+  
 console.log("MENU EFFECT TRIGGER =", activeTab, selectedBusiness?.id);
 
   async function loadBusinessContents() {
